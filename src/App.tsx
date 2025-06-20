@@ -13,8 +13,9 @@ import {
 import { useAuth } from './hooks/useAuth';
 import { AuthModal } from './components/AuthModal';
 import { UserMenu } from './components/UserMenu';
-import { UserProfile } from './components/UserProfile';
-import { AdminPanel } from './components/AdminPanel';
+import UserProfile from './components/UserProfile';  // <== sans accolades
+import AdminPanel from './components/AdminPanel';    // <== sans accolades
+
 
 function App() {
   const { isAuthenticated, isAdmin, loading } = useAuth();
