@@ -15,7 +15,8 @@ import {
   RefreshCw,
   UserPlus,
   Crown,
-  UserMinus
+  UserMinus,
+  Lock
 } from 'lucide-react';
 import { database } from '../services/database';
 import { User as UserType } from '../types/user';
@@ -71,11 +72,18 @@ export const AdminPanel: React.FC = () => {
   }, [users, searchTerm, sortBy, sortOrder]);
 
   const handleDeleteUser = (userId: string) => {
+    if (database.isProtectedAdmin(userId)) {
+      alert('Impossible de supprimer cet administrateur protégé !');
+      return;
+    }
+
     const success = database.deleteUser(userId);
     if (success) {
       loadUsers();
       setShowDeleteConfirm(null);
       setSelectedUser(null);
+    } else {
+      alert('Erreur lors de la suppression de l\'utilisateur');
     }
   };
 
@@ -90,6 +98,11 @@ export const AdminPanel: React.FC = () => {
   };
 
   const handleDemoteUser = (userId: string) => {
+    if (database.isProtectedAdmin(userId)) {
+      alert('Impossible de rétrograder cet administrateur protégé !');
+      return;
+    }
+
     if (window.confirm('Êtes-vous sûr de vouloir rétrograder cet administrateur ?')) {
       const success = database.demoteFromAdmin(userId);
       if (success) {
@@ -291,7 +304,12 @@ export const AdminPanel: React.FC = () => {
                           </span>
                         </div>
                         <div>
-                          <div className="text-white font-medium">{user.firstName} {user.lastName}</div>
+                          <div className="flex items-center space-x-2">
+                            <span className="text-white font-medium">{user.firstName} {user.lastName}</span>
+                            {database.isProtectedAdmin(user.id) && (
+                              <Lock className="w-4 h-4 text-yellow-400" title="Administrateur protégé" />
+                            )}
+                          </div>
                           <div className="text-gray-400 text-sm font-mono">{user.id}</div>
                         </div>
                       </div>
@@ -325,8 +343,13 @@ export const AdminPanel: React.FC = () => {
                         {user.role === 'admin' ? (
                           <button
                             onClick={() => handleDemoteUser(user.id)}
-                            className="p-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg transition-colors"
-                            title="Rétrograder"
+                            disabled={database.isProtectedAdmin(user.id)}
+                            className={`p-2 text-white rounded-lg transition-colors ${
+                              database.isProtectedAdmin(user.id)
+                                ? 'bg-gray-500 cursor-not-allowed'
+                                : 'bg-orange-600 hover:bg-orange-700'
+                            }`}
+                            title={database.isProtectedAdmin(user.id) ? "Administrateur protégé" : "Rétrograder"}
                           >
                             <UserMinus className="w-4 h-4" />
                           </button>
@@ -342,8 +365,13 @@ export const AdminPanel: React.FC = () => {
                         
                         <button
                           onClick={() => setShowDeleteConfirm(user.id)}
-                          className="p-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
-                          title="Supprimer"
+                          disabled={database.isProtectedAdmin(user.id)}
+                          className={`p-2 text-white rounded-lg transition-colors ${
+                            database.isProtectedAdmin(user.id)
+                              ? 'bg-gray-500 cursor-not-allowed'
+                              : 'bg-red-600 hover:bg-red-700'
+                          }`}
+                          title={database.isProtectedAdmin(user.id) ? "Administrateur protégé" : "Supprimer"}
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
@@ -399,6 +427,11 @@ export const AdminPanel: React.FC = () => {
                     {selectedUser.role === 'admin' && (
                       <div className="px-3 py-1 bg-red-500/20 border border-red-500/50 rounded-full">
                         <span className="text-red-400 text-sm font-medium">ADMIN</span>
+                      </div>
+                    )}
+                    {database.isProtectedAdmin(selectedUser.id) && (
+                      <div className="px-3 py-1 bg-yellow-500/20 border border-yellow-500/50 rounded-full">
+                        <span className="text-yellow-400 text-sm font-medium">PROTÉGÉ</span>
                       </div>
                     )}
                   </div>
@@ -476,42 +509,56 @@ export const AdminPanel: React.FC = () => {
               </div>
               
               {/* Actions rapides */}
-              <div className="flex space-x-3 pt-4 border-t border-gray-700">
-                {selectedUser.role === 'admin' ? (
+              {!database.isProtectedAdmin(selectedUser.id) && (
+                <div className="flex space-x-3 pt-4 border-t border-gray-700">
+                  {selectedUser.role === 'admin' ? (
+                    <button
+                      onClick={() => {
+                        handleDemoteUser(selectedUser.id);
+                        setSelectedUser(null);
+                      }}
+                      className="flex items-center space-x-2 px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg transition-colors"
+                    >
+                      <UserMinus className="w-4 h-4" />
+                      <span>Rétrograder</span>
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => {
+                        handlePromoteUser(selectedUser.id);
+                        setSelectedUser(null);
+                      }}
+                      className="flex items-center space-x-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors"
+                    >
+                      <UserPlus className="w-4 h-4" />
+                      <span>Promouvoir Admin</span>
+                    </button>
+                  )}
+                  
                   <button
                     onClick={() => {
-                      handleDemoteUser(selectedUser.id);
+                      setShowDeleteConfirm(selectedUser.id);
                       setSelectedUser(null);
                     }}
-                    className="flex items-center space-x-2 px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg transition-colors"
+                    className="flex items-center space-x-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
                   >
-                    <UserMinus className="w-4 h-4" />
-                    <span>Rétrograder</span>
+                    <Trash2 className="w-4 h-4" />
+                    <span>Supprimer</span>
                   </button>
-                ) : (
-                  <button
-                    onClick={() => {
-                      handlePromoteUser(selectedUser.id);
-                      setSelectedUser(null);
-                    }}
-                    className="flex items-center space-x-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors"
-                  >
-                    <UserPlus className="w-4 h-4" />
-                    <span>Promouvoir Admin</span>
-                  </button>
-                )}
-                
-                <button
-                  onClick={() => {
-                    setShowDeleteConfirm(selectedUser.id);
-                    setSelectedUser(null);
-                  }}
-                  className="flex items-center space-x-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
-                >
-                  <Trash2 className="w-4 h-4" />
-                  <span>Supprimer</span>
-                </button>
-              </div>
+                </div>
+              )}
+              
+              {database.isProtectedAdmin(selectedUser.id) && (
+                <div className="p-4 bg-yellow-500/20 border border-yellow-500/50 rounded-lg">
+                  <div className="flex items-center space-x-2">
+                    <Lock className="w-5 h-5 text-yellow-400" />
+                    <span className="text-yellow-400 font-medium">Administrateur protégé</span>
+                  </div>
+                  <p className="text-yellow-300 text-sm mt-1">
+                    Cet utilisateur ne peut pas être supprimé ou rétrogradé.
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         </div>

@@ -3,6 +3,7 @@ import { User } from '../types/user';
 class LocalDatabase {
   private readonly USERS_KEY = 'modfusion_users';
   private readonly CURRENT_USER_KEY = 'modfusion_current_user';
+  private readonly PROTECTED_ADMIN_ID = 'mc557wr25jsbl84c3ol';
 
   // Récupérer tous les utilisateurs
   getUsers(): User[] {
@@ -34,6 +35,9 @@ class LocalDatabase {
     users.push(newUser);
     this.saveUsers(users);
     
+    // Connecter automatiquement l'utilisateur après inscription
+    this.setCurrentUser(newUser);
+    
     return newUser;
   }
 
@@ -47,9 +51,10 @@ class LocalDatabase {
       user.lastLogin = new Date().toISOString();
       this.saveUsers(users);
       this.setCurrentUser(user);
+      return user;
     }
     
-    return user || null;
+    return null;
   }
 
   // Définir l'utilisateur actuel
@@ -87,8 +92,13 @@ class LocalDatabase {
     return users[userIndex];
   }
 
-  // Supprimer un utilisateur
+  // Supprimer un utilisateur (avec protection pour l'admin principal)
   deleteUser(userId: string): boolean {
+    // Protéger l'admin principal
+    if (userId === this.PROTECTED_ADMIN_ID) {
+      return false;
+    }
+
     const users = this.getUsers();
     const filteredUsers = users.filter(u => u.id !== userId);
     
@@ -116,10 +126,41 @@ class LocalDatabase {
     return !!updatedUser;
   }
 
-  // Rétrograder un admin en utilisateur normal
+  // Rétrograder un admin en utilisateur normal (avec protection pour l'admin principal)
   demoteFromAdmin(userId: string): boolean {
+    // Protéger l'admin principal
+    if (userId === this.PROTECTED_ADMIN_ID) {
+      return false;
+    }
+
     const updatedUser = this.updateUser(userId, { role: 'user' });
     return !!updatedUser;
+  }
+
+  // Vérifier si un utilisateur est l'admin protégé
+  isProtectedAdmin(userId: string): boolean {
+    return userId === this.PROTECTED_ADMIN_ID;
+  }
+
+  // Créer l'admin principal s'il n'existe pas
+  ensureProtectedAdminExists(): void {
+    const users = this.getUsers();
+    const protectedAdmin = users.find(u => u.id === this.PROTECTED_ADMIN_ID);
+    
+    if (!protectedAdmin) {
+      const adminUser: User = {
+        id: this.PROTECTED_ADMIN_ID,
+        email: 'admin@modfusion.com',
+        firstName: 'Super',
+        lastName: 'Admin',
+        password: 'admin123',
+        createdAt: new Date().toISOString(),
+        role: 'admin'
+      };
+      
+      users.push(adminUser);
+      this.saveUsers(users);
+    }
   }
 
   // Générer un ID unique
@@ -131,7 +172,12 @@ class LocalDatabase {
   reset(): void {
     localStorage.removeItem(this.USERS_KEY);
     localStorage.removeItem(this.CURRENT_USER_KEY);
+    // Recréer l'admin protégé après reset
+    this.ensureProtectedAdminExists();
   }
 }
 
 export const database = new LocalDatabase();
+
+// S'assurer que l'admin protégé existe au démarrage
+database.ensureProtectedAdminExists();
