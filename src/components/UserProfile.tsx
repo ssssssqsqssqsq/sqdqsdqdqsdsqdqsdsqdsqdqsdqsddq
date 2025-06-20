@@ -12,7 +12,7 @@ const UserProfile: React.FC = () => {
   const handleUpdate = async () => {
     if (!user) return;
 
-    const updates = {
+    const updates: Partial<typeof user> = {
       firstName: 'NouveauPrénom',
       lastName: 'NouveauNom',
     };
@@ -22,11 +22,11 @@ const UserProfile: React.FC = () => {
       if (result.success) {
         alert('Profil mis à jour avec succès');
       } else {
-        alert('Erreur: ' + (result.error || 'Erreur inconnue'));
+        alert('Erreur : ' + (result.error || 'Erreur inconnue'));
       }
     } catch (error) {
       alert('Erreur lors de la mise à jour du profil');
-      console.error(error);
+      console.error('Erreur handleUpdate:', error);
     }
   };
 
@@ -38,7 +38,7 @@ const UserProfile: React.FC = () => {
       <p><strong>Nom:</strong> {user.firstName} {user.lastName}</p>
       <p><strong>Email:</strong> {user.email}</p>
       <p><strong>Rôle:</strong> {user.role}</p>
-      <p><strong>Dernière connexion:</strong> {new Date(user.lastLogin).toLocaleString()}</p>
+      <p><strong>Dernière connexion:</strong> {user.lastLogin ? new Date(user.lastLogin).toLocaleString() : 'Inconnue'}</p>
       <button
         onClick={handleUpdate}
         className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
