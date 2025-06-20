@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { User, Mail, Calendar, Clock, Edit3, Save, X, Shield, Key } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 
@@ -8,14 +8,32 @@ export const UserProfile: React.FC = () => {
   const [showAdminPromotion, setShowAdminPromotion] = useState(false);
   const [adminCode, setAdminCode] = useState('');
   const [editForm, setEditForm] = useState({
-    firstName: user?.firstName || '',
-    lastName: user?.lastName || '',
-    email: user?.email || '',
+    firstName: '',
+    lastName: '',
+    email: '',
   });
   const [isUpdating, setIsUpdating] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
-  if (!user) return null;
+  // Synchroniser le formulaire avec user dès qu'il est disponible ou mis à jour
+  useEffect(() => {
+    if (user) {
+      setEditForm({
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+      });
+    }
+  }, [user]);
+
+  if (!user) {
+    // Affiche un message ou loader pendant le chargement
+    return (
+      <div className="flex justify-center items-center h-64 text-white">
+        Chargement du profil...
+      </div>
+    );
+  }
 
   const handleSave = async () => {
     setIsUpdating(true);
@@ -101,7 +119,7 @@ export const UserProfile: React.FC = () => {
                 <p className="text-gray-400 text-lg">{user.email}</p>
               </div>
             </div>
-            
+
             {!isEditing ? (
               <button
                 onClick={() => setIsEditing(true)}
@@ -149,7 +167,7 @@ export const UserProfile: React.FC = () => {
             {/* Informations personnelles */}
             <div className="space-y-6">
               <h2 className="text-xl font-semibold text-white mb-4">Informations personnelles</h2>
-              
+
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">
@@ -259,7 +277,7 @@ export const UserProfile: React.FC = () => {
             {/* Informations du compte */}
             <div className="space-y-6">
               <h2 className="text-xl font-semibold text-white mb-4">Informations du compte</h2>
-              
+
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">
@@ -310,19 +328,4 @@ export const UserProfile: React.FC = () => {
                 <h3 className="text-lg font-semibold text-white mb-4">Statistiques</h3>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="p-4 bg-gradient-to-r from-blue-500/20 to-purple-600/20 border border-blue-500/30 rounded-lg">
-                    <div className="text-2xl font-bold text-white">0</div>
-                    <div className="text-sm text-gray-300">Mods téléchargés</div>
-                  </div>
-                  <div className="p-4 bg-gradient-to-r from-green-500/20 to-emerald-600/20 border border-green-500/30 rounded-lg">
-                    <div className="text-2xl font-bold text-white">0</div>
-                    <div className="text-sm text-gray-300">Mods favoris</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
+                    <div className="text-
