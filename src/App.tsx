@@ -203,4 +203,32 @@ function App() {
                     >
                       S'inscrire gratuitement
                     </button>
-                    <span className="text-gray-
+                    <span className="text-gray-500">•</span>
+                    <button
+                      onClick={() => openAuthModal('login')}
+                      className="text-gray-400 hover:text-white text-sm transition-colors"
+                    >
+                      Déjà un compte ?
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </main>
+        )}
+
+        {currentView === 'profile' && isAuthenticated && <UserProfile />}
+
+        {currentView === 'admin' && isAdmin && <AdminPanel />}
+
+        <AuthModal 
+          isOpen={isAuthModalOpen} 
+          mode={authModalMode} 
+          onClose={() => setIsAuthModalOpen(false)} 
+        />
+      </div>
+    </div>
+  );
+}
+
+export default App;
