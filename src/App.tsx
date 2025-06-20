@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { AuthProvider, useAuth } from "./contexts/AuthContext";
+import { AuthProvider, useAuth } from "./AuthContext";
 
 function LoginForm() {
   const { login, loading, error } = useAuth();
@@ -13,27 +13,23 @@ function LoginForm() {
 
   return (
     <form onSubmit={handleSubmit} className="max-w-sm mx-auto p-4">
-      <div>
-        <label>Email</label>
-        <input
-          type="email"
-          required
-          value={email}
-          onChange={e => setEmail(e.target.value)}
-          className="border p-2 w-full"
-        />
-      </div>
+      <label>Email</label>
+      <input
+        type="email"
+        required
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        className="border p-2 w-full"
+      />
 
-      <div className="mt-4">
-        <label>Mot de passe</label>
-        <input
-          type="password"
-          required
-          value={password}
-          onChange={e => setPassword(e.target.value)}
-          className="border p-2 w-full"
-        />
-      </div>
+      <label className="mt-4">Mot de passe</label>
+      <input
+        type="password"
+        required
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+        className="border p-2 w-full"
+      />
 
       {error && <p className="text-red-500 mt-2">{error}</p>}
 
