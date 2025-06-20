@@ -21,8 +21,6 @@ export const useAuth = () => {
 
   const login = async (credentials: LoginCredentials): Promise<{ success: boolean; error?: string }> => {
     try {
-      setLoading(true);
-      
       // Validation des entrées
       if (!credentials.email?.trim() || !credentials.password?.trim()) {
         return { success: false, error: 'Veuillez remplir tous les champs' };
@@ -51,15 +49,11 @@ export const useAuth = () => {
         success: false, 
         error: error instanceof Error ? error.message : 'Erreur lors de la connexion' 
       };
-    } finally {
-      setLoading(false);
     }
   };
 
   const register = async (data: RegisterData): Promise<{ success: boolean; error?: string }> => {
     try {
-      setLoading(true);
-      
       // Validation des champs obligatoires
       if (!data.email?.trim() || !data.firstName?.trim() || !data.lastName?.trim() || 
           !data.password?.trim() || !data.confirmPassword?.trim()) {
@@ -106,8 +100,6 @@ export const useAuth = () => {
         success: false, 
         error: error instanceof Error ? error.message : 'Erreur lors de l\'inscription' 
       };
-    } finally {
-      setLoading(false);
     }
   };
 

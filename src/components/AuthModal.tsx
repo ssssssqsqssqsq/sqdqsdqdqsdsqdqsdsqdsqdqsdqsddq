@@ -70,8 +70,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMo
     setSuccess('');
     setIsSubmitting(true);
 
+    console.log('Tentative de connexion avec:', loginForm);
+
     try {
       const result = await login(loginForm);
+      console.log('Résultat de la connexion:', result);
       
       if (result.success) {
         setSuccess('Connexion réussie !');
@@ -82,6 +85,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMo
         setError(result.error || 'Erreur de connexion');
       }
     } catch (error) {
+      console.error('Erreur lors de la connexion:', error);
       setError('Une erreur inattendue s\'est produite');
     } finally {
       setIsSubmitting(false);
@@ -135,6 +139,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMo
     if (!isSubmitting) {
       onClose();
     }
+  };
+
+  // Fonction pour remplir automatiquement les identifiants de démo
+  const fillDemoCredentials = () => {
+    setLoginForm({
+      email: 'admin@modfusion.com',
+      password: 'admin123'
+    });
   };
 
   if (!isOpen) return null;
@@ -241,10 +253,22 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMo
 
               {/* Demo credentials */}
               <div className="mt-4 p-3 bg-gray-800/50 border border-gray-600 rounded-lg">
-                <p className="text-gray-400 text-xs mb-2">🎮 Compte de démonstration :</p>
-                <div className="space-y-1">
-                  <p className="text-gray-300 text-xs">📧 Email: admin@modfusion.com</p>
-                  <p className="text-gray-300 text-xs">🔑 Mot de passe: admin123</p>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-gray-400 text-xs mb-2">🎮 Compte de démonstration :</p>
+                    <div className="space-y-1">
+                      <p className="text-gray-300 text-xs">📧 Email: admin@modfusion.com</p>
+                      <p className="text-gray-300 text-xs">🔑 Mot de passe: admin123</p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={fillDemoCredentials}
+                    disabled={isSubmitting}
+                    className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs rounded transition-colors disabled:opacity-50"
+                  >
+                    Utiliser
+                  </button>
                 </div>
               </div>
             </form>

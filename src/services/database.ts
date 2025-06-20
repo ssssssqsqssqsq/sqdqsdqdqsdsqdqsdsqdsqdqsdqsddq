@@ -36,6 +36,7 @@ class DatabaseService {
       const existingUsers = this.getUsers();
       existingUsers.push(adminUser);
       this.saveUsers(existingUsers);
+      console.log('Admin par défaut créé:', adminUser.email);
     }
   }
 
@@ -88,20 +89,27 @@ class DatabaseService {
   }
 
   authenticateUser(email: string, password: string): User | null {
+    console.log('Tentative de connexion pour:', email);
     const users = this.getUsers();
-    const user = users.find(u => 
-      u.email.toLowerCase() === email.toLowerCase() && 
-      u.password === password
-    );
+    console.log('Utilisateurs disponibles:', users.map(u => ({ email: u.email, password: u.password })));
+    
+    const user = users.find(u => {
+      const emailMatch = u.email.toLowerCase() === email.toLowerCase();
+      const passwordMatch = u.password === password;
+      console.log(`Vérification ${u.email}: email=${emailMatch}, password=${passwordMatch}`);
+      return emailMatch && passwordMatch;
+    });
 
     if (user) {
+      console.log('Utilisateur trouvé:', user.email);
       // Mettre à jour la dernière connexion
-      user.lastLogin = new Date().toISOString();
-      this.updateUser(user.id, { lastLogin: user.lastLogin });
-      this.setCurrentUser(user);
-      return user;
+      const updatedUser = { ...user, lastLogin: new Date().toISOString() };
+      this.updateUser(user.id, { lastLogin: updatedUser.lastLogin });
+      this.setCurrentUser(updatedUser);
+      return updatedUser;
     }
 
+    console.log('Aucun utilisateur trouvé avec ces identifiants');
     return null;
   }
 
