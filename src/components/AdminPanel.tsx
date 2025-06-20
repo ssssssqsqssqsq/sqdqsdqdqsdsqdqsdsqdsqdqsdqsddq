@@ -28,8 +28,6 @@ export const AdminPanel: React.FC = () => {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [selectedUser, setSelectedUser] = useState<UserType | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
-  const [showPromoteModal, setShowPromoteModal] = useState(false);
-  const [promoteUserId, setPromoteUserId] = useState('');
 
   const loadUsers = () => {
     const allUsers = database.getUsers();
@@ -81,16 +79,13 @@ export const AdminPanel: React.FC = () => {
     }
   };
 
-  const handlePromoteUser = () => {
-    if (!promoteUserId.trim()) return;
-    
-    const success = database.promoteToAdminById(promoteUserId.trim());
-    if (success) {
-      loadUsers();
-      setShowPromoteModal(false);
-      setPromoteUserId('');
-    } else {
-      alert('Utilisateur non trouvé ou erreur lors de la promotion');
+  const handlePromoteUser = (userId: string) => {
+    if (window.confirm('Êtes-vous sûr de vouloir promouvoir cet utilisateur en administrateur ?')) {
+      const success = database.promoteToAdminById(userId);
+      if (success) {
+        loadUsers();
+        setSelectedUser(null);
+      }
     }
   };
 
@@ -151,14 +146,6 @@ export const AdminPanel: React.FC = () => {
             </div>
             
             <div className="flex items-center space-x-3">
-              <button
-                onClick={() => setShowPromoteModal(true)}
-                className="flex items-center space-x-2 px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg transition-colors"
-              >
-                <Crown className="w-4 h-4" />
-                <span>Promouvoir Admin</span>
-              </button>
-              
               <button
                 onClick={loadUsers}
                 className="flex items-center space-x-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
@@ -345,10 +332,7 @@ export const AdminPanel: React.FC = () => {
                           </button>
                         ) : (
                           <button
-                            onClick={() => {
-                              setPromoteUserId(user.id);
-                              setShowPromoteModal(true);
-                            }}
+                            onClick={() => handlePromoteUser(user.id)}
                             className="p-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors"
                             title="Promouvoir admin"
                           >
@@ -379,61 +363,6 @@ export const AdminPanel: React.FC = () => {
           </div>
         </div>
       </div>
-
-      {/* Promote User Modal */}
-      {showPromoteModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setShowPromoteModal(false)} />
-          
-          <div className="relative bg-gray-900 rounded-2xl shadow-2xl w-full max-w-md border border-orange-500/50">
-            <div className="p-6">
-              <div className="flex items-center space-x-4 mb-4">
-                <div className="p-3 bg-orange-500/20 border border-orange-500/50 rounded-lg">
-                  <Crown className="w-6 h-6 text-orange-400" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-bold text-white">Promouvoir Administrateur</h3>
-                  <p className="text-gray-400">Entrez l'ID de l'utilisateur</p>
-                </div>
-              </div>
-              
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  ID Utilisateur
-                </label>
-                <input
-                  type="text"
-                  value={promoteUserId}
-                  onChange={(e) => setPromoteUserId(e.target.value)}
-                  placeholder="Entrez l'ID de l'utilisateur"
-                  className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all"
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  L'ID utilisateur se trouve dans le tableau ci-dessus
-                </p>
-              </div>
-              
-              <div className="flex space-x-3">
-                <button
-                  onClick={handlePromoteUser}
-                  className="flex-1 py-3 bg-orange-600 hover:bg-orange-700 text-white font-semibold rounded-lg transition-colors"
-                >
-                  Promouvoir
-                </button>
-                <button
-                  onClick={() => {
-                    setShowPromoteModal(false);
-                    setPromoteUserId('');
-                  }}
-                  className="flex-1 py-3 bg-gray-600 hover:bg-gray-700 text-white font-semibold rounded-lg transition-colors"
-                >
-                  Annuler
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* User Detail Modal */}
       {selectedUser && (
@@ -546,12 +475,42 @@ export const AdminPanel: React.FC = () => {
                 </div>
               </div>
               
-              {/* Raw Data */}
-              <div className="space-y-4">
-                <h4 className="text-lg font-semibold text-white">Données brutes (JSON)</h4>
-                <pre className="p-4 bg-gray-800 rounded-lg text-sm text-gray-300 overflow-x-auto">
-                  {JSON.stringify(selectedUser, null, 2)}
-                </pre>
+              {/* Actions rapides */}
+              <div className="flex space-x-3 pt-4 border-t border-gray-700">
+                {selectedUser.role === 'admin' ? (
+                  <button
+                    onClick={() => {
+                      handleDemoteUser(selectedUser.id);
+                      setSelectedUser(null);
+                    }}
+                    className="flex items-center space-x-2 px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg transition-colors"
+                  >
+                    <UserMinus className="w-4 h-4" />
+                    <span>Rétrograder</span>
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => {
+                      handlePromoteUser(selectedUser.id);
+                      setSelectedUser(null);
+                    }}
+                    className="flex items-center space-x-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors"
+                  >
+                    <UserPlus className="w-4 h-4" />
+                    <span>Promouvoir Admin</span>
+                  </button>
+                )}
+                
+                <button
+                  onClick={() => {
+                    setShowDeleteConfirm(selectedUser.id);
+                    setSelectedUser(null);
+                  }}
+                  className="flex items-center space-x-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  <span>Supprimer</span>
+                </button>
               </div>
             </div>
           </div>

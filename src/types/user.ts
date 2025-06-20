@@ -8,7 +8,6 @@ export interface User {
   lastLogin?: string;
   avatar?: string;
   role: 'user' | 'admin';
-  adminCode?: string;
 }
 
 export interface LoginCredentials {
@@ -22,5 +21,4 @@ export interface RegisterData {
   lastName: string;
   password: string;
   confirmPassword: string;
-  adminCode?: string;
 }

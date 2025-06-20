@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Mail, Lock, User, Eye, EyeOff, Shield } from 'lucide-react';
+import { X, Mail, Lock, User, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { LoginCredentials, RegisterData } from '../types/user';
 
@@ -13,7 +13,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMo
   const [mode, setMode] = useState<'login' | 'register'>(initialMode);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [showAdminCode, setShowAdminCode] = useState(false);
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   
@@ -30,7 +29,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMo
     lastName: '',
     password: '',
     confirmPassword: '',
-    adminCode: '',
   });
 
   const handleLoginSubmit = async (e: React.FormEvent) => {
@@ -65,7 +63,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMo
         lastName: '',
         password: '',
         confirmPassword: '',
-        adminCode: '',
       });
     } else {
       setError(result.error || 'Erreur d\'inscription');
@@ -259,36 +256,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMo
                     {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                   </button>
                 </div>
-              </div>
-
-              {/* Code Admin (optionnel) */}
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <label className="block text-sm font-medium text-gray-300">
-                    Code administrateur
-                  </label>
-                  <span className="text-xs text-gray-500">(optionnel)</span>
-                </div>
-                <div className="relative">
-                  <Shield className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                  <input
-                    type={showAdminCode ? 'text' : 'password'}
-                    value={registerForm.adminCode}
-                    onChange={(e) => setRegisterForm({ ...registerForm, adminCode: e.target.value })}
-                    className="w-full pl-10 pr-12 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all"
-                    placeholder="Code admin (si vous en avez un)"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowAdminCode(!showAdminCode)}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
-                  >
-                    {showAdminCode ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                  </button>
-                </div>
-                <p className="text-xs text-gray-500 mt-1">
-                  Laissez vide pour créer un compte utilisateur normal
-                </p>
               </div>
 
               <button

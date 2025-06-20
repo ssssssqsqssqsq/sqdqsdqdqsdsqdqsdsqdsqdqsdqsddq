@@ -3,7 +3,6 @@ import { User } from '../types/user';
 class LocalDatabase {
   private readonly USERS_KEY = 'modfusion_users';
   private readonly CURRENT_USER_KEY = 'modfusion_current_user';
-  private readonly ADMIN_CODE = 'mc557wr25jsbl84c3ol';
 
   // Récupérer tous les utilisateurs
   getUsers(): User[] {
@@ -16,11 +15,6 @@ class LocalDatabase {
     localStorage.setItem(this.USERS_KEY, JSON.stringify(users));
   }
 
-  // Vérifier si un code admin est valide
-  isValidAdminCode(code: string): boolean {
-    return code === this.ADMIN_CODE;
-  }
-
   // Créer un nouvel utilisateur
   createUser(userData: Omit<User, 'id' | 'createdAt' | 'role'>): User {
     const users = this.getUsers();
@@ -30,18 +24,12 @@ class LocalDatabase {
       throw new Error('Un compte avec cette adresse email existe déjà');
     }
 
-    // Déterminer le rôle basé sur le code admin
-    const isAdmin = userData.adminCode && this.isValidAdminCode(userData.adminCode);
-
     const newUser: User = {
       ...userData,
       id: this.generateId(),
       createdAt: new Date().toISOString(),
-      role: isAdmin ? 'admin' : 'user',
+      role: 'user', // Tous les nouveaux utilisateurs sont des utilisateurs normaux
     };
-
-    // Ne pas stocker le code admin dans la base de données
-    delete newUser.adminCode;
 
     users.push(newUser);
     this.saveUsers(users);
@@ -115,14 +103,6 @@ class LocalDatabase {
     }
     
     return true;
-  }
-
-  // Promouvoir un utilisateur en admin avec le code
-  promoteToAdmin(userId: string, adminCode: string): boolean {
-    if (!this.isValidAdminCode(adminCode)) return false;
-    
-    const updatedUser = this.updateUser(userId, { role: 'admin' });
-    return !!updatedUser;
   }
 
   // Promouvoir un utilisateur en admin par ID (pour les admins)
