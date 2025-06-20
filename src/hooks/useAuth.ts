@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
 interface User {
   firstName: string;
@@ -20,7 +20,7 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -33,9 +33,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const login = async (email: string, password: string) => {
-    // Ici tu fais ta logique réelle de login, API etc.
-    // Exemple fake:
-    const fakeUser = {
+    // Simuler un appel API de connexion (à remplacer par ta logique réelle)
+    const fakeUser: User = {
       firstName: 'Jean',
       lastName: 'Dupont',
       email,
@@ -53,9 +52,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const updateProfile = async (updates: Partial<User>) => {
     if (!user) return { success: false, error: 'Pas d’utilisateur connecté' };
+
     const updatedUser = { ...user, ...updates };
     setUser(updatedUser);
     localStorage.setItem('user', JSON.stringify(updatedUser));
+
     return { success: true };
   };
 
@@ -76,8 +77,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   );
 };
 
-export const useAuth = () => {
+export const useAuth = (): AuthContextValue => {
   const context = useContext(AuthContext);
-  if (!context) throw new Error('useAuth doit être utilisé dans un AuthProvider');
+  if (!context) {
+    throw new Error('useAuth doit être utilisé dans un AuthProvider');
+  }
   return context;
 };
