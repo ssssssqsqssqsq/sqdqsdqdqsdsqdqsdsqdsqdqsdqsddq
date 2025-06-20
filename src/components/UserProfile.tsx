@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { User, Mail, Calendar, Clock, Edit3, Save, X, Shield, Key } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 
@@ -8,32 +8,14 @@ export const UserProfile: React.FC = () => {
   const [showAdminPromotion, setShowAdminPromotion] = useState(false);
   const [adminCode, setAdminCode] = useState('');
   const [editForm, setEditForm] = useState({
-    firstName: '',
-    lastName: '',
-    email: '',
+    firstName: user?.firstName || '',
+    lastName: user?.lastName || '',
+    email: user?.email || '',
   });
   const [isUpdating, setIsUpdating] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
-  // Synchroniser le formulaire avec user dès qu'il est disponible ou mis à jour
-  useEffect(() => {
-    if (user) {
-      setEditForm({
-        firstName: user.firstName,
-        lastName: user.lastName,
-        email: user.email,
-      });
-    }
-  }, [user]);
-
-  if (!user) {
-    // Affiche un message ou loader pendant le chargement
-    return (
-      <div className="flex justify-center items-center h-64 text-white">
-        Chargement du profil...
-      </div>
-    );
-  }
+  if (!user) return null;
 
   const handleSave = async () => {
     setIsUpdating(true);
@@ -119,7 +101,7 @@ export const UserProfile: React.FC = () => {
                 <p className="text-gray-400 text-lg">{user.email}</p>
               </div>
             </div>
-
+            
             {!isEditing ? (
               <button
                 onClick={() => setIsEditing(true)}
@@ -167,7 +149,7 @@ export const UserProfile: React.FC = () => {
             {/* Informations personnelles */}
             <div className="space-y-6">
               <h2 className="text-xl font-semibold text-white mb-4">Informations personnelles</h2>
-
+              
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">
@@ -277,7 +259,7 @@ export const UserProfile: React.FC = () => {
             {/* Informations du compte */}
             <div className="space-y-6">
               <h2 className="text-xl font-semibold text-white mb-4">Informations du compte</h2>
-
+              
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">
@@ -295,37 +277,4 @@ export const UserProfile: React.FC = () => {
                   <label className="block text-sm font-medium text-gray-300 mb-2">
                     ID utilisateur
                   </label>
-                  <div className="flex items-center space-x-3 p-3 bg-gray-800/50 rounded-lg">
-                    <span className="text-gray-400 font-mono text-sm">{user.id}</span>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
-                    Membre depuis
-                  </label>
-                  <div className="flex items-center space-x-3 p-3 bg-gray-800/50 rounded-lg">
-                    <Calendar className="w-5 h-5 text-gray-400" />
-                    <span className="text-white">{formatDate(user.createdAt)}</span>
-                  </div>
-                </div>
-
-                {user.lastLogin && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">
-                      Dernière connexion
-                    </label>
-                    <div className="flex items-center space-x-3 p-3 bg-gray-800/50 rounded-lg">
-                      <Clock className="w-5 h-5 text-gray-400" />
-                      <span className="text-white">{formatDate(user.lastLogin)}</span>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Statistiques */}
-              <div className="mt-8">
-                <h3 className="text-lg font-semibold text-white mb-4">Statistiques</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="p-4 bg-gradient-to-r from-blue-500/20 to-purple-600/20 border border-blue-500/30 rounded-lg">
-                    <div className="text-
+                  <div className="flex items-center space-x-3 p-3 bg-gray-
