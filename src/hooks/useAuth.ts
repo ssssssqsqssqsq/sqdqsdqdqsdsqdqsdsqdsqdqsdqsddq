@@ -7,9 +7,9 @@ export const useAuth = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Vérifier si un utilisateur est déjà connecté
     try {
       const currentUser = database.getCurrentUser();
+      console.log("useAuth - utilisateur récupéré:", currentUser);
       setUser(currentUser);
     } catch (error) {
       console.error('Erreur lors de la vérification de l\'utilisateur:', error);
@@ -21,22 +21,20 @@ export const useAuth = () => {
 
   const login = async (credentials: LoginCredentials): Promise<{ success: boolean; error?: string }> => {
     try {
-      // Validation des entrées
       if (!credentials.email?.trim() || !credentials.password?.trim()) {
         return { success: false, error: 'Veuillez remplir tous les champs' };
       }
 
-      // Validation de l'email
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(credentials.email.trim())) {
         return { success: false, error: 'Veuillez entrer une adresse email valide' };
       }
 
       const authenticatedUser = database.authenticateUser(
-        credentials.email.trim(), 
+        credentials.email.trim(),
         credentials.password
       );
-      
+
       if (authenticatedUser) {
         setUser(authenticatedUser);
         return { success: true };
@@ -45,28 +43,25 @@ export const useAuth = () => {
       }
     } catch (error) {
       console.error('Erreur de connexion:', error);
-      return { 
-        success: false, 
-        error: error instanceof Error ? error.message : 'Erreur lors de la connexion' 
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Erreur lors de la connexion'
       };
     }
   };
 
   const register = async (data: RegisterData): Promise<{ success: boolean; error?: string }> => {
     try {
-      // Validation des champs obligatoires
-      if (!data.email?.trim() || !data.firstName?.trim() || !data.lastName?.trim() || 
-          !data.password?.trim() || !data.confirmPassword?.trim()) {
+      if (!data.email?.trim() || !data.firstName?.trim() || !data.lastName?.trim() ||
+        !data.password?.trim() || !data.confirmPassword?.trim()) {
         return { success: false, error: 'Veuillez remplir tous les champs obligatoires' };
       }
 
-      // Validation de l'email
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(data.email.trim())) {
         return { success: false, error: 'Veuillez entrer une adresse email valide' };
       }
 
-      // Validation du mot de passe
       if (data.password.length < 6) {
         return { success: false, error: 'Le mot de passe doit contenir au moins 6 caractères' };
       }
@@ -75,7 +70,6 @@ export const useAuth = () => {
         return { success: false, error: 'Les mots de passe ne correspondent pas' };
       }
 
-      // Validation des noms (pas de caractères spéciaux)
       const nameRegex = /^[a-zA-ZÀ-ÿ\s'-]+$/;
       if (!nameRegex.test(data.firstName.trim())) {
         return { success: false, error: 'Le prénom contient des caractères non valides' };
@@ -96,9 +90,9 @@ export const useAuth = () => {
       return { success: true };
     } catch (error) {
       console.error('Erreur d\'inscription:', error);
-      return { 
-        success: false, 
-        error: error instanceof Error ? error.message : 'Erreur lors de l\'inscription' 
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Erreur lors de l\'inscription'
       };
     }
   };
@@ -116,7 +110,8 @@ export const useAuth = () => {
     if (!user) return { success: false, error: 'Utilisateur non connecté' };
 
     try {
-      // Validation des données
+      console.log("updateProfile - Données à mettre à jour :", updates);
+
       if (updates.email) {
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(updates.email.trim())) {
@@ -125,8 +120,9 @@ export const useAuth = () => {
         updates.email = updates.email.toLowerCase().trim();
       }
 
+      const nameRegex = /^[a-zA-ZÀ-ÿ\s'-]+$/;
+
       if (updates.firstName) {
-        const nameRegex = /^[a-zA-ZÀ-ÿ\s'-]+$/;
         if (!nameRegex.test(updates.firstName.trim())) {
           return { success: false, error: 'Le prénom contient des caractères non valides' };
         }
@@ -134,7 +130,6 @@ export const useAuth = () => {
       }
 
       if (updates.lastName) {
-        const nameRegex = /^[a-zA-ZÀ-ÿ\s'-]+$/;
         if (!nameRegex.test(updates.lastName.trim())) {
           return { success: false, error: 'Le nom contient des caractères non valides' };
         }
@@ -142,16 +137,19 @@ export const useAuth = () => {
       }
 
       const updatedUser = database.updateUser(user.id, updates);
+      console.log("updateProfile - Utilisateur mis à jour :", updatedUser);
+
       if (updatedUser) {
         setUser(updatedUser);
         return { success: true };
       }
+
       return { success: false, error: 'Erreur lors de la mise à jour' };
     } catch (error) {
       console.error('Erreur de mise à jour:', error);
-      return { 
-        success: false, 
-        error: error instanceof Error ? error.message : 'Erreur lors de la mise à jour du profil' 
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Erreur lors de la mise à jour du profil'
       };
     }
   };
