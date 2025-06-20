@@ -10,18 +10,20 @@ import {
   User,
   Menu,
   Square,
-  ArrowLeft
+  ArrowLeft,
+  Database
 } from 'lucide-react';
 import { useAuth } from './hooks/useAuth';
 import { AuthModal } from './components/AuthModal';
 import { UserMenu } from './components/UserMenu';
 import { UserProfile } from './components/UserProfile';
+import { AdminPanel } from './components/AdminPanel';
 
 function App() {
   const { isAuthenticated, loading } = useAuth();
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authModalMode, setAuthModalMode] = useState<'login' | 'register'>('login');
-  const [currentView, setCurrentView] = useState<'home' | 'profile'>('home');
+  const [currentView, setCurrentView] = useState<'home' | 'profile' | 'admin'>('home');
 
   const openAuthModal = (mode: 'login' | 'register') => {
     setAuthModalMode(mode);
@@ -30,6 +32,10 @@ function App() {
 
   const handleProfileClick = () => {
     setCurrentView('profile');
+  };
+
+  const handleAdminClick = () => {
+    setCurrentView('admin');
   };
 
   const handleBackToHome = () => {
@@ -67,7 +73,7 @@ function App() {
             <div className="flex items-center justify-between h-16">
               {/* Logo */}
               <div className="flex items-center space-x-4">
-                {currentView === 'profile' && (
+                {(currentView === 'profile' || currentView === 'admin') && (
                   <button
                     onClick={handleBackToHome}
                     className="text-gray-300 hover:text-white transition-colors"
@@ -78,6 +84,11 @@ function App() {
                 <div className="text-2xl font-bold text-white">
                   ModFusion
                 </div>
+                {currentView === 'admin' && (
+                  <div className="px-3 py-1 bg-red-500/20 border border-red-500/50 rounded-full">
+                    <span className="text-red-400 text-sm font-medium">ADMIN</span>
+                  </div>
+                )}
               </div>
 
               {/* Navigation Desktop */}
@@ -108,6 +119,16 @@ function App() {
                   <Globe className="w-4 h-4" />
                   <span>Français</span>
                 </div>
+                
+                {/* Admin Button - Always visible */}
+                <button
+                  onClick={handleAdminClick}
+                  className="flex items-center space-x-2 px-3 py-2 bg-red-600/20 border border-red-500/50 text-red-400 hover:bg-red-600/30 hover:text-red-300 rounded-lg transition-colors"
+                  title="Panneau d'administration"
+                >
+                  <Database className="w-4 h-4" />
+                  <span className="hidden lg:block">Admin</span>
+                </button>
                 
                 {isAuthenticated ? (
                   <UserMenu onProfileClick={handleProfileClick} />
@@ -226,9 +247,13 @@ function App() {
               )}
             </div>
           </main>
-        ) : (
+        ) : currentView === 'profile' ? (
           <main className="py-8">
             <UserProfile />
+          </main>
+        ) : (
+          <main className="py-8">
+            <AdminPanel />
           </main>
         )}
       </div>
