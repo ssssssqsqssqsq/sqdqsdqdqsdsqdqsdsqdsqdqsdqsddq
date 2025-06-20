@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { 
   Download, 
   Play, 
@@ -11,8 +11,28 @@ import {
   Menu,
   Square
 } from 'lucide-react';
+import { useAuth } from './hooks/useAuth';
+import { AuthModal } from './components/AuthModal';
+import { UserMenu } from './components/UserMenu';
 
 function App() {
+  const { isAuthenticated, loading } = useAuth();
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [authModalMode, setAuthModalMode] = useState<'login' | 'register'>('login');
+
+  const openAuthModal = (mode: 'login' | 'register') => {
+    setAuthModalMode(mode);
+    setIsAuthModalOpen(true);
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="text-white text-xl">Chargement...</div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-black text-white relative overflow-hidden">
       {/* Background Image */}
@@ -67,10 +87,25 @@ function App() {
                   <Globe className="w-4 h-4" />
                   <span>Français</span>
                 </div>
-                <div className="flex items-center space-x-2 text-gray-300 hover:text-white cursor-pointer transition-colors">
-                  <User className="w-4 h-4" />
-                  <span>Compte</span>
-                </div>
+                
+                {isAuthenticated ? (
+                  <UserMenu />
+                ) : (
+                  <div className="flex items-center space-x-3">
+                    <button
+                      onClick={() => openAuthModal('login')}
+                      className="text-gray-300 hover:text-white transition-colors"
+                    >
+                      Connexion
+                    </button>
+                    <button
+                      onClick={() => openAuthModal('register')}
+                      className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+                    >
+                      S'inscrire
+                    </button>
+                  </div>
+                )}
               </div>
 
               {/* Mobile menu button */}
@@ -143,6 +178,30 @@ function App() {
                 Comment ça marche
               </button>
             </div>
+
+            {/* Auth prompt for non-authenticated users */}
+            {!isAuthenticated && (
+              <div className="mt-8 p-4 bg-gray-900/60 border border-gray-700 rounded-lg backdrop-blur-sm">
+                <p className="text-gray-300 text-sm mb-3">
+                  Créez un compte pour accéder à tous nos mods et fonctionnalités exclusives !
+                </p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => openAuthModal('register')}
+                    className="text-blue-400 hover:text-blue-300 text-sm font-medium transition-colors"
+                  >
+                    S'inscrire gratuitement
+                  </button>
+                  <span className="text-gray-500">•</span>
+                  <button
+                    onClick={() => openAuthModal('login')}
+                    className="text-gray-400 hover:text-white text-sm transition-colors"
+                  >
+                    Déjà un compte ?
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </main>
       </div>
@@ -152,6 +211,13 @@ function App() {
       <div className="absolute bottom-32 right-32 w-5 h-5 bg-blue-500 rounded-sm animate-bounce delay-300 shadow-lg opacity-60"></div>
       <div className="absolute top-1/3 right-10 w-4 h-4 bg-amber-600 rounded-sm animate-pulse opacity-60"></div>
       <div className="absolute bottom-20 left-20 w-4 h-4 bg-purple-600 rounded-sm animate-bounce delay-500 shadow-lg opacity-60"></div>
+
+      {/* Auth Modal */}
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        initialMode={authModalMode}
+      />
     </div>
   );
 }
