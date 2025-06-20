@@ -16,7 +16,6 @@ import { UserMenu } from './components/UserMenu';
 import UserProfile from './components/UserProfile';  // <== sans accolades
 import AdminPanel from './components/AdminPanel';    // <== sans accolades
 
-
 function App() {
   const { isAuthenticated, isAdmin, loading } = useAuth();
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
