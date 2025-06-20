@@ -1,183 +1,250 @@
 import { User } from '../types/user';
 
-class LocalDatabase {
-  private readonly USERS_KEY = 'modfusion_users';
+interface CreateUserData {
+  email: string;
+  firstName: string;
+  lastName: string;
+  password: string;
+}
+
+class DatabaseService {
+  private readonly STORAGE_KEY = 'modfusion_users';
   private readonly CURRENT_USER_KEY = 'modfusion_current_user';
-  private readonly PROTECTED_ADMIN_ID = 'mc557wr25jsbl84c3ol';
+  private readonly PROTECTED_ADMINS = ['admin@modfusion.com'];
 
-  // Récupérer tous les utilisateurs
-  getUsers(): User[] {
-    const users = localStorage.getItem(this.USERS_KEY);
-    return users ? JSON.parse(users) : [];
+  constructor() {
+    this.initializeDatabase();
   }
 
-  // Sauvegarder tous les utilisateurs
+  private initializeDatabase(): void {
+    // Créer un admin par défaut s'il n'existe pas
+    const users = this.getUsers();
+    const adminExists = users.some(user => user.email === 'admin@modfusion.com');
+    
+    if (!adminExists) {
+      const adminUser: User = {
+        id: 'admin-' + Date.now(),
+        email: 'admin@modfusion.com',
+        firstName: 'Admin',
+        lastName: 'ModFusion',
+        password: 'admin123', // En production, ceci devrait être hashé
+        role: 'admin',
+        createdAt: new Date().toISOString(),
+        lastLogin: new Date().toISOString()
+      };
+      
+      const existingUsers = this.getUsers();
+      existingUsers.push(adminUser);
+      this.saveUsers(existingUsers);
+    }
+  }
+
   private saveUsers(users: User[]): void {
-    localStorage.setItem(this.USERS_KEY, JSON.stringify(users));
+    try {
+      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(users));
+    } catch (error) {
+      console.error('Erreur lors de la sauvegarde des utilisateurs:', error);
+    }
   }
 
-  // Créer un nouvel utilisateur
-  createUser(userData: Omit<User, 'id' | 'createdAt' | 'role'>): User {
+  getUsers(): User[] {
+    try {
+      const data = localStorage.getItem(this.STORAGE_KEY);
+      return data ? JSON.parse(data) : [];
+    } catch (error) {
+      console.error('Erreur lors de la récupération des utilisateurs:', error);
+      return [];
+    }
+  }
+
+  createUser(userData: CreateUserData): User {
     const users = this.getUsers();
     
     // Vérifier si l'email existe déjà
-    if (users.some(user => user.email === userData.email)) {
+    const existingUser = users.find(user => user.email.toLowerCase() === userData.email.toLowerCase());
+    if (existingUser) {
       throw new Error('Un compte avec cette adresse email existe déjà');
     }
 
+    // Créer le nouvel utilisateur
     const newUser: User = {
-      ...userData,
-      id: this.generateId(),
+      id: 'user-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9),
+      email: userData.email.toLowerCase().trim(),
+      firstName: userData.firstName.trim(),
+      lastName: userData.lastName.trim(),
+      password: userData.password, // En production, ceci devrait être hashé
+      role: 'user',
       createdAt: new Date().toISOString(),
-      role: 'user', // Tous les nouveaux utilisateurs sont des utilisateurs normaux
+      lastLogin: new Date().toISOString()
     };
 
     users.push(newUser);
     this.saveUsers(users);
     
-    // Connecter automatiquement l'utilisateur après inscription
+    // Connecter automatiquement l'utilisateur
     this.setCurrentUser(newUser);
     
     return newUser;
   }
 
-  // Authentifier un utilisateur
   authenticateUser(email: string, password: string): User | null {
     const users = this.getUsers();
-    const user = users.find(u => u.email === email && u.password === password);
-    
+    const user = users.find(u => 
+      u.email.toLowerCase() === email.toLowerCase() && 
+      u.password === password
+    );
+
     if (user) {
       // Mettre à jour la dernière connexion
       user.lastLogin = new Date().toISOString();
-      this.saveUsers(users);
+      this.updateUser(user.id, { lastLogin: user.lastLogin });
       this.setCurrentUser(user);
       return user;
     }
-    
+
     return null;
   }
 
-  // Définir l'utilisateur actuel
-  setCurrentUser(user: User): void {
-    localStorage.setItem(this.CURRENT_USER_KEY, JSON.stringify(user));
-  }
-
-  // Récupérer l'utilisateur actuel
   getCurrentUser(): User | null {
-    const user = localStorage.getItem(this.CURRENT_USER_KEY);
-    return user ? JSON.parse(user) : null;
+    try {
+      const data = localStorage.getItem(this.CURRENT_USER_KEY);
+      if (!data) return null;
+      
+      const userData = JSON.parse(data);
+      
+      // Vérifier que l'utilisateur existe toujours dans la base
+      const users = this.getUsers();
+      const currentUser = users.find(u => u.id === userData.id);
+      
+      if (currentUser) {
+        // Retourner les données les plus récentes
+        return currentUser;
+      } else {
+        // L'utilisateur n'existe plus, nettoyer le localStorage
+        this.logout();
+        return null;
+      }
+    } catch (error) {
+      console.error('Erreur lors de la récupération de l\'utilisateur actuel:', error);
+      this.logout();
+      return null;
+    }
   }
 
-  // Déconnecter l'utilisateur
-  logout(): void {
-    localStorage.removeItem(this.CURRENT_USER_KEY);
+  private setCurrentUser(user: User): void {
+    try {
+      localStorage.setItem(this.CURRENT_USER_KEY, JSON.stringify(user));
+    } catch (error) {
+      console.error('Erreur lors de la sauvegarde de l\'utilisateur actuel:', error);
+    }
   }
 
-  // Mettre à jour un utilisateur
   updateUser(userId: string, updates: Partial<User>): User | null {
     const users = this.getUsers();
     const userIndex = users.findIndex(u => u.id === userId);
     
     if (userIndex === -1) return null;
-    
+
+    // Vérifier l'email unique si on le modifie
+    if (updates.email) {
+      const emailExists = users.some(u => 
+        u.id !== userId && 
+        u.email.toLowerCase() === updates.email!.toLowerCase()
+      );
+      if (emailExists) {
+        throw new Error('Cette adresse email est déjà utilisée');
+      }
+    }
+
+    // Appliquer les mises à jour
     users[userIndex] = { ...users[userIndex], ...updates };
     this.saveUsers(users);
-    
-    // Mettre à jour l'utilisateur actuel si c'est lui qui est modifié
+
+    // Mettre à jour l'utilisateur actuel si c'est lui
     const currentUser = this.getCurrentUser();
     if (currentUser && currentUser.id === userId) {
       this.setCurrentUser(users[userIndex]);
     }
-    
+
     return users[userIndex];
   }
 
-  // Supprimer un utilisateur (avec protection pour l'admin principal)
   deleteUser(userId: string): boolean {
-    // Protéger l'admin principal
-    if (userId === this.PROTECTED_ADMIN_ID) {
+    if (this.isProtectedAdmin(userId)) {
       return false;
     }
 
     const users = this.getUsers();
     const filteredUsers = users.filter(u => u.id !== userId);
     
-    if (filteredUsers.length === users.length) return false;
-    
-    this.saveUsers(filteredUsers);
-    
-    // Déconnecter si c'est l'utilisateur actuel
-    const currentUser = this.getCurrentUser();
-    if (currentUser && currentUser.id === userId) {
-      this.logout();
+    if (filteredUsers.length !== users.length) {
+      this.saveUsers(filteredUsers);
+      
+      // Si l'utilisateur supprimé était connecté, le déconnecter
+      const currentUser = this.getCurrentUser();
+      if (currentUser && currentUser.id === userId) {
+        this.logout();
+      }
+      
+      return true;
     }
     
-    return true;
+    return false;
   }
 
-  // Promouvoir un utilisateur en admin par ID (pour les admins)
   promoteToAdminById(userId: string): boolean {
-    const users = this.getUsers();
-    const user = users.find(u => u.id === userId);
-    
-    if (!user) return false;
-    
-    const updatedUser = this.updateUser(userId, { role: 'admin' });
-    return !!updatedUser;
+    return !!this.updateUser(userId, { role: 'admin' });
   }
 
-  // Rétrograder un admin en utilisateur normal (avec protection pour l'admin principal)
   demoteFromAdmin(userId: string): boolean {
-    // Protéger l'admin principal
-    if (userId === this.PROTECTED_ADMIN_ID) {
+    if (this.isProtectedAdmin(userId)) {
       return false;
     }
-
-    const updatedUser = this.updateUser(userId, { role: 'user' });
-    return !!updatedUser;
+    return !!this.updateUser(userId, { role: 'user' });
   }
 
-  // Vérifier si un utilisateur est l'admin protégé
   isProtectedAdmin(userId: string): boolean {
-    return userId === this.PROTECTED_ADMIN_ID;
+    const users = this.getUsers();
+    const user = users.find(u => u.id === userId);
+    return user ? this.PROTECTED_ADMINS.includes(user.email) : false;
   }
 
-  // Créer l'admin principal s'il n'existe pas
-  ensureProtectedAdminExists(): void {
-    const users = this.getUsers();
-    const protectedAdmin = users.find(u => u.id === this.PROTECTED_ADMIN_ID);
-    
-    if (!protectedAdmin) {
-      const adminUser: User = {
-        id: this.PROTECTED_ADMIN_ID,
-        email: 'admin@modfusion.com',
-        firstName: 'Super',
-        lastName: 'Admin',
-        password: 'admin123',
-        createdAt: new Date().toISOString(),
-        role: 'admin'
-      };
-      
-      users.push(adminUser);
-      this.saveUsers(users);
+  logout(): void {
+    try {
+      localStorage.removeItem(this.CURRENT_USER_KEY);
+    } catch (error) {
+      console.error('Erreur lors de la déconnexion:', error);
     }
   }
 
-  // Générer un ID unique
-  private generateId(): string {
-    return Date.now().toString(36) + Math.random().toString(36).substr(2);
+  reset(): void {
+    try {
+      localStorage.removeItem(this.STORAGE_KEY);
+      localStorage.removeItem(this.CURRENT_USER_KEY);
+      this.initializeDatabase();
+    } catch (error) {
+      console.error('Erreur lors de la réinitialisation:', error);
+    }
   }
 
-  // Réinitialiser la base de données (pour le développement)
-  reset(): void {
-    localStorage.removeItem(this.USERS_KEY);
-    localStorage.removeItem(this.CURRENT_USER_KEY);
-    // Recréer l'admin protégé après reset
-    this.ensureProtectedAdminExists();
+  // Méthodes utilitaires pour les statistiques
+  getStats() {
+    const users = this.getUsers();
+    const now = new Date();
+    const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+    return {
+      totalUsers: users.length,
+      admins: users.filter(u => u.role === 'admin').length,
+      activeToday: users.filter(u => 
+        u.lastLogin && new Date(u.lastLogin) > oneDayAgo
+      ).length,
+      newThisWeek: users.filter(u => 
+        new Date(u.createdAt) > oneWeekAgo
+      ).length
+    };
   }
 }
 
-export const database = new LocalDatabase();
-
-// S'assurer que l'admin protégé existe au démarrage
-database.ensureProtectedAdminExists();
+export const database = new DatabaseService();
