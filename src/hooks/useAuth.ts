@@ -1,110 +1,62 @@
-import { useState, useEffect } from 'react';
-import { User, LoginCredentials, RegisterData } from '../types/user';
-import { database } from '../services/database';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 
-export const useAuth = () => {
+interface User {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  role: string;
+  createdAt: string;
+  lastLogin?: string;
+}
+
+interface AuthContextType {
+  user: User | null;
+  login: (email: string, password: string) => Promise<boolean>;
+  logout: () => void;
+  updateProfile: (data: Partial<User>) => Promise<{ success: boolean; error?: string }>;
+  // ...
+}
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+export const AuthProvider: React.FC = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    // Vérifier si un utilisateur est déjà connecté
-    const currentUser = database.getCurrentUser();
-    setUser(currentUser);
-    setLoading(false);
-  }, []);
-
-  const login = async (credentials: LoginCredentials): Promise<{ success: boolean; error?: string }> => {
+  const login = async (email: string, password: string) => {
+    // Exemple : appeler une API pour s'authentifier
     try {
-      setLoading(true);
-      const authenticatedUser = database.authenticateUser(credentials.email, credentials.password);
-      
-      if (authenticatedUser) {
-        setUser(authenticatedUser);
-        return { success: true };
-      } else {
-        return { success: false, error: 'Email ou mot de passe incorrect' };
+      const response = await fakeApiLogin(email, password); // à remplacer par ta vraie API
+      if (response.success) {
+        setUser(response.user); // Mets à jour le user global ici !
+        return true;
       }
-    } catch (error) {
-      return { success: false, error: 'Erreur lors de la connexion' };
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const register = async (data: RegisterData): Promise<{ success: boolean; error?: string }> => {
-    try {
-      setLoading(true);
-      
-      if (data.password !== data.confirmPassword) {
-        return { success: false, error: 'Les mots de passe ne correspondent pas' };
-      }
-
-      if (data.password.length < 6) {
-        return { success: false, error: 'Le mot de passe doit contenir au moins 6 caractères' };
-      }
-
-      const newUser = database.createUser({
-        email: data.email,
-        firstName: data.firstName,
-        lastName: data.lastName,
-        password: data.password,
-        adminCode: data.adminCode,
-      });
-
-      setUser(newUser);
-      return { success: true };
-    } catch (error) {
-      return { success: false, error: error instanceof Error ? error.message : 'Erreur lors de l\'inscription' };
-    } finally {
-      setLoading(false);
+      return false;
+    } catch {
+      return false;
     }
   };
 
   const logout = () => {
-    database.logout();
     setUser(null);
+    // Faire logout côté backend si besoin
   };
 
-  const updateProfile = async (updates: Partial<User>): Promise<{ success: boolean; error?: string }> => {
-    if (!user) return { success: false, error: 'Utilisateur non connecté' };
-
-    try {
-      const updatedUser = database.updateUser(user.id, updates);
-      if (updatedUser) {
-        setUser(updatedUser);
-        return { success: true };
-      }
-      return { success: false, error: 'Erreur lors de la mise à jour' };
-    } catch (error) {
-      return { success: false, error: 'Erreur lors de la mise à jour du profil' };
-    }
+  const updateProfile = async (data: Partial<User>) => {
+    // Appel API update, si succès:
+    setUser((prev) => prev ? { ...prev, ...data } : null);
+    return { success: true };
   };
 
-  const promoteToAdmin = async (adminCode: string): Promise<{ success: boolean; error?: string }> => {
-    if (!user) return { success: false, error: 'Utilisateur non connecté' };
+  return (
+    <AuthContext.Provider value={{ user, login, logout, updateProfile }}>
+      {children}
+    </AuthContext.Provider>
+  );
+};
 
-    try {
-      const success = database.promoteToAdmin(user.id, adminCode);
-      if (success) {
-        const updatedUser = database.getCurrentUser();
-        setUser(updatedUser);
-        return { success: true };
-      }
-      return { success: false, error: 'Code administrateur invalide' };
-    } catch (error) {
-      return { success: false, error: 'Erreur lors de la promotion' };
-    }
-  };
-
-  return {
-    user,
-    loading,
-    login,
-    register,
-    logout,
-    updateProfile,
-    promoteToAdmin,
-    isAuthenticated: !!user,
-    isAdmin: user?.role === 'admin',
-  };
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) throw new Error('useAuth must be used within AuthProvider');
+  return context;
 };
