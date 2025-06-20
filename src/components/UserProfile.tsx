@@ -1,67 +1,40 @@
-import { useState, useEffect } from "react";
-import { useAuth } from "../hooks/useAuth";
+import React from 'react';
+import { useAuth } from '../hooks/useAuth';
 
-const UserProfile = () => {
+const UserProfile: React.FC = () => {
   const { user, updateProfile } = useAuth();
 
-  const [editForm, setEditForm] = useState({
-    firstName: "",
-    lastName: "",
-    email: ""
-  });
+  const handleUpdate = async () => {
+    if (!user) return;
 
-  const [message, setMessage] = useState("");
+    const updates = {
+      firstName: 'NouveauPrénom',
+      lastName: 'NouveauNom',
+    };
 
-  useEffect(() => {
-    console.log("UserProfile rendu - user :", user);
-    if (user) {
-      setEditForm({
-        firstName: user.firstName,
-        lastName: user.lastName,
-        email: user.email
-      });
-    }
-  }, [user]);
-
-  const handleUpdate = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    const response = await updateProfile(editForm);
-    console.log("Résultat de la mise à jour :", response);
-
-    if (response.success) {
-      console.log("Mise à jour réussie. Nouvel utilisateur :", user);
-      setMessage("Profil mis à jour avec succès.");
+    const result = await updateProfile(updates);
+    if (result.success) {
+      alert('Profil mis à jour avec succès');
     } else {
-      setMessage(response.error || "Erreur lors de la mise à jour.");
+      alert('Erreur: ' + result.error);
     }
   };
 
+  if (!user) return <p>Chargement ou utilisateur non connecté...</p>;
+
   return (
-    <div>
-      <h2>Mon Profil</h2>
-      {message && <p>{message}</p>}
-      <form onSubmit={handleUpdate}>
-        <input
-          type="text"
-          value={editForm.firstName}
-          onChange={(e) => setEditForm({ ...editForm, firstName: e.target.value })}
-          placeholder="Prénom"
-        />
-        <input
-          type="text"
-          value={editForm.lastName}
-          onChange={(e) => setEditForm({ ...editForm, lastName: e.target.value })}
-          placeholder="Nom"
-        />
-        <input
-          type="email"
-          value={editForm.email}
-          onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
-          placeholder="Email"
-        />
-        <button type="submit">Mettre à jour</button>
-      </form>
+    <div className="p-4 border rounded shadow-sm max-w-md mx-auto mt-10 bg-white">
+      <h2 className="text-xl font-bold mb-4">Profil utilisateur</h2>
+      <p><strong>Nom:</strong> {user.firstName} {user.lastName}</p>
+      <p><strong>Email:</strong> {user.email}</p>
+      <p><strong>Rôle:</strong> {user.role}</p>
+      <p><strong>Dernière connexion:</strong> {new Date(user.lastLogin).toLocaleString()}</p>
+      <button 
+        onClick={handleUpdate} 
+        className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+      >
+        Modifier le profil
+      </button>
     </div>
   );
 };
