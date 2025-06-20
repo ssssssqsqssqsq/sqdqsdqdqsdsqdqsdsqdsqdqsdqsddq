@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
-import { User, Mail, Calendar, Clock, Edit3, Save, X } from 'lucide-react';
+import { User, Mail, Calendar, Clock, Edit3, Save, X, Shield, Key } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 
 export const UserProfile: React.FC = () => {
-  const { user, updateProfile } = useAuth();
+  const { user, updateProfile, promoteToAdmin } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
+  const [showAdminPromotion, setShowAdminPromotion] = useState(false);
+  const [adminCode, setAdminCode] = useState('');
   const [editForm, setEditForm] = useState({
     firstName: user?.firstName || '',
     lastName: user?.lastName || '',
@@ -46,6 +48,23 @@ export const UserProfile: React.FC = () => {
     setMessage(null);
   };
 
+  const handleAdminPromotion = async () => {
+    if (!adminCode.trim()) {
+      setMessage({ type: 'error', text: 'Veuillez entrer un code administrateur' });
+      return;
+    }
+
+    const result = await promoteToAdmin(adminCode);
+    if (result.success) {
+      setMessage({ type: 'success', text: 'Vous avez été promu administrateur !' });
+      setShowAdminPromotion(false);
+      setAdminCode('');
+      setTimeout(() => setMessage(null), 3000);
+    } else {
+      setMessage({ type: 'error', text: result.error || 'Code administrateur invalide' });
+    }
+  };
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('fr-FR', {
       year: 'numeric',
@@ -69,9 +88,16 @@ export const UserProfile: React.FC = () => {
                 </span>
               </div>
               <div>
-                <h1 className="text-3xl font-bold text-white">
-                  {user.firstName} {user.lastName}
-                </h1>
+                <div className="flex items-center space-x-3">
+                  <h1 className="text-3xl font-bold text-white">
+                    {user.firstName} {user.lastName}
+                  </h1>
+                  {user.role === 'admin' && (
+                    <div className="px-3 py-1 bg-red-500/20 border border-red-500/50 rounded-full">
+                      <span className="text-red-400 text-sm font-medium">ADMIN</span>
+                    </div>
+                  )}
+                </div>
                 <p className="text-gray-400 text-lg">{user.email}</p>
               </div>
             </div>
@@ -182,6 +208,52 @@ export const UserProfile: React.FC = () => {
                   )}
                 </div>
               </div>
+
+              {/* Admin Promotion - Only for non-admin users */}
+              {user.role !== 'admin' && (
+                <div className="mt-8">
+                  <h3 className="text-lg font-semibold text-white mb-4">Devenir administrateur</h3>
+                  {!showAdminPromotion ? (
+                    <button
+                      onClick={() => setShowAdminPromotion(true)}
+                      className="flex items-center space-x-2 px-4 py-2 bg-orange-600/20 border border-orange-500/50 text-orange-400 hover:bg-orange-600/30 hover:text-orange-300 rounded-lg transition-colors"
+                    >
+                      <Key className="w-4 h-4" />
+                      <span>Entrer un code administrateur</span>
+                    </button>
+                  ) : (
+                    <div className="space-y-3">
+                      <div className="flex space-x-2">
+                        <input
+                          type="password"
+                          value={adminCode}
+                          onChange={(e) => setAdminCode(e.target.value)}
+                          placeholder="Code administrateur"
+                          className="flex-1 px-4 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all"
+                        />
+                        <button
+                          onClick={handleAdminPromotion}
+                          className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg transition-colors"
+                        >
+                          Valider
+                        </button>
+                        <button
+                          onClick={() => {
+                            setShowAdminPromotion(false);
+                            setAdminCode('');
+                          }}
+                          className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors"
+                        >
+                          Annuler
+                        </button>
+                      </div>
+                      <p className="text-xs text-gray-500">
+                        Entrez le code administrateur pour obtenir les privilèges d'administration
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Informations du compte */}
@@ -189,6 +261,18 @@ export const UserProfile: React.FC = () => {
               <h2 className="text-xl font-semibold text-white mb-4">Informations du compte</h2>
               
               <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Rôle
+                  </label>
+                  <div className="flex items-center space-x-3 p-3 bg-gray-800/50 rounded-lg">
+                    <Shield className={`w-5 h-5 ${user.role === 'admin' ? 'text-red-400' : 'text-gray-400'}`} />
+                    <span className={`font-medium ${user.role === 'admin' ? 'text-red-400' : 'text-white'}`}>
+                      {user.role === 'admin' ? 'Administrateur' : 'Utilisateur'}
+                    </span>
+                  </div>
+                </div>
+
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">
                     ID utilisateur

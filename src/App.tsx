@@ -20,7 +20,7 @@ import { UserProfile } from './components/UserProfile';
 import { AdminPanel } from './components/AdminPanel';
 
 function App() {
-  const { isAuthenticated, loading } = useAuth();
+  const { isAuthenticated, isAdmin, loading } = useAuth();
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authModalMode, setAuthModalMode] = useState<'login' | 'register'>('login');
   const [currentView, setCurrentView] = useState<'home' | 'profile' | 'admin'>('home');
@@ -120,15 +120,17 @@ function App() {
                   <span>Français</span>
                 </div>
                 
-                {/* Admin Button - Always visible */}
-                <button
-                  onClick={handleAdminClick}
-                  className="flex items-center space-x-2 px-3 py-2 bg-red-600/20 border border-red-500/50 text-red-400 hover:bg-red-600/30 hover:text-red-300 rounded-lg transition-colors"
-                  title="Panneau d'administration"
-                >
-                  <Database className="w-4 h-4" />
-                  <span className="hidden lg:block">Admin</span>
-                </button>
+                {/* Admin Button - Only visible for admins */}
+                {isAdmin && (
+                  <button
+                    onClick={handleAdminClick}
+                    className="flex items-center space-x-2 px-3 py-2 bg-red-600/20 border border-red-500/50 text-red-400 hover:bg-red-600/30 hover:text-red-300 rounded-lg transition-colors"
+                    title="Panneau d'administration"
+                  >
+                    <Database className="w-4 h-4" />
+                    <span className="hidden lg:block">Admin</span>
+                  </button>
+                )}
                 
                 {isAuthenticated ? (
                   <UserMenu onProfileClick={handleProfileClick} />

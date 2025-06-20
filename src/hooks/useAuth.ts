@@ -48,6 +48,7 @@ export const useAuth = () => {
         firstName: data.firstName,
         lastName: data.lastName,
         password: data.password,
+        adminCode: data.adminCode,
       });
 
       setUser(newUser);
@@ -79,6 +80,22 @@ export const useAuth = () => {
     }
   };
 
+  const promoteToAdmin = async (adminCode: string): Promise<{ success: boolean; error?: string }> => {
+    if (!user) return { success: false, error: 'Utilisateur non connecté' };
+
+    try {
+      const success = database.promoteToAdmin(user.id, adminCode);
+      if (success) {
+        const updatedUser = database.getCurrentUser();
+        setUser(updatedUser);
+        return { success: true };
+      }
+      return { success: false, error: 'Code administrateur invalide' };
+    } catch (error) {
+      return { success: false, error: 'Erreur lors de la promotion' };
+    }
+  };
+
   return {
     user,
     loading,
@@ -86,6 +103,8 @@ export const useAuth = () => {
     register,
     logout,
     updateProfile,
+    promoteToAdmin,
     isAuthenticated: !!user,
+    isAdmin: user?.role === 'admin',
   };
 };
