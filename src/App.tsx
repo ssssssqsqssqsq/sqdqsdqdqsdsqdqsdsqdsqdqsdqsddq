@@ -207,3 +207,15 @@ function App() {
                   />
                   <span className="text-white font-medium">Compatible Minecraft</span>
                 </div>
+
+                <div className="flex items-center space-x-2">
+                  <Package className="w-5 h-5 text-blue-500" />
+                  <span className="text-white font-medium">21 000+</span>
+                  <span className="text-gray-300">téléchargements</span>
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-4 mt-8">
+                <button className="inline-flex items-center justify-center px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-transform duration-200 transform hover:scale-105 shadow-2xl hover:shadow-blue-500/25">
+                  <Monitor className="w-5 h-5 mr-2" />
+                  Téléchargement gratuit
