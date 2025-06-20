@@ -277,4 +277,5 @@ export const UserProfile: React.FC = () => {
                   <label className="block text-sm font-medium text-gray-300 mb-2">
                     ID utilisateur
                   </label>
-                  <div className="flex items-center space-x-3 p-3 bg-gray-
+                  <div className="flex items-center space-x-3 p-3 bg-gray-800/50 rounded-lg">
+                    <
