@@ -12,6 +12,7 @@ const UserProfile: React.FC = () => {
   const handleUpdate = async () => {
     if (!user) return;
 
+    // On utilise Partial<typeof user> pour autoriser une mise à jour partielle
     const updates: Partial<typeof user> = {
       firstName: 'NouveauPrénom',
       lastName: 'NouveauNom',
@@ -35,10 +36,10 @@ const UserProfile: React.FC = () => {
   return (
     <div className="p-4 border rounded shadow-sm max-w-md mx-auto mt-10 bg-white">
       <h2 className="text-xl font-bold mb-4">Profil utilisateur</h2>
-      <p><strong>Nom:</strong> {user.firstName} {user.lastName}</p>
-      <p><strong>Email:</strong> {user.email}</p>
-      <p><strong>Rôle:</strong> {user.role}</p>
-      <p><strong>Dernière connexion:</strong> {user.lastLogin ? new Date(user.lastLogin).toLocaleString() : 'Inconnue'}</p>
+      <p><strong>Nom :</strong> {user.firstName} {user.lastName}</p>
+      <p><strong>Email :</strong> {user.email}</p>
+      <p><strong>Rôle :</strong> {user.role}</p>
+      <p><strong>Dernière connexion :</strong> {user.lastLogin ? new Date(user.lastLogin).toLocaleString() : 'Inconnue'}</p>
       <button
         onClick={handleUpdate}
         className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
