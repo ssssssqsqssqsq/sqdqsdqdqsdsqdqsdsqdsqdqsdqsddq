@@ -1,0 +1,8 @@
+<div className="flex items-center space-x-2">
+  <img
+    src="/minecraft-logo.png"
+    alt="Minecraft logo"
+    className="w-6 h-6 object-contain"
+  />
+  <span className="text-white font-medium">Compatible Minecraft</span>
+</div>
