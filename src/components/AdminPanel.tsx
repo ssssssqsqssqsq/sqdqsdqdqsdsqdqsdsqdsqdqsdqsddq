@@ -1,321 +1,598 @@
 import React, { useState, useEffect } from 'react';
+import { 
+  Database, 
+  Users, 
+  Eye, 
+  Trash2, 
+  Search, 
+  Filter,
+  Calendar,
+  Mail,
+  User,
+  Clock,
+  Shield,
+  Download,
+  RefreshCw,
+  UserPlus,
+  Crown,
+  UserMinus
+} from 'lucide-react';
+import { database } from '../services/database';
+import { User as UserType } from '../types/user';
 
-interface UserType {
-  id: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  role: 'user' | 'admin';
-  createdAt: Date;
-  lastLogin: Date;
-}
-
-const database = {
-  users: [
-    {
-      id: '1',
-      firstName: 'Alice',
-      lastName: 'Durand',
-      email: 'alice@example.com',
-      role: 'admin',
-      createdAt: new Date('2023-01-01T10:00:00'),
-      lastLogin: new Date('2025-06-15T12:00:00'),
-    },
-    {
-      id: '2',
-      firstName: 'Bob',
-      lastName: 'Martin',
-      email: 'bob@example.com',
-      role: 'user',
-      createdAt: new Date('2024-02-20T09:00:00'),
-      lastLogin: new Date('2025-06-19T14:00:00'),
-    },
-  ] as UserType[],
-
-  getUsers() {
-    return [...this.users];
-  },
-
-  promoteToAdmin(id: string) {
-    this.users = this.users.map(u =>
-      u.id === id ? { ...u, role: 'admin' } : u
-    );
-  },
-
-  demoteToUser(id: string) {
-    if (this.isProtectedAdmin(id)) return;
-    this.users = this.users.map(u =>
-      u.id === id ? { ...u, role: 'user' } : u
-    );
-  },
-
-  deleteUser(id: string) {
-    if (this.isProtectedAdmin(id)) return;
-    this.users = this.users.filter(u => u.id !== id);
-  },
-
-  isProtectedAdmin(id: string) {
-    return id === '1'; // exemple d’admin protégé
-  },
-};
-
-function formatDate(date: Date) {
-  return date.toLocaleDateString('fr-FR', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
-
-const AdminPanel: React.FC = () => {
+export const AdminPanel: React.FC = () => {
   const [users, setUsers] = useState<UserType[]>([]);
+  const [filteredUsers, setFilteredUsers] = useState<UserType[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [sortBy, setSortBy] = useState<'createdAt' | 'lastLogin' | 'email' | 'firstName'>('createdAt');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [selectedUser, setSelectedUser] = useState<UserType | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
-  const [filter, setFilter] = useState('');
+  const [showPromoteModal, setShowPromoteModal] = useState(false);
+  const [promoteUserId, setPromoteUserId] = useState('');
+
+  const loadUsers = () => {
+    const allUsers = database.getUsers();
+    setUsers(allUsers);
+    setFilteredUsers(allUsers);
+  };
 
   useEffect(() => {
-    setUsers(database.getUsers());
+    loadUsers();
   }, []);
 
-  const refreshUsers = () => setUsers(database.getUsers());
+  useEffect(() => {
+    let filtered = users.filter(user => 
+      user.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.id.toLowerCase().includes(searchTerm.toLowerCase())
+    );
 
-  const filteredUsers = users.filter(u =>
-    u.firstName.toLowerCase().includes(filter.toLowerCase()) ||
-    u.lastName.toLowerCase().includes(filter.toLowerCase()) ||
-    u.email.toLowerCase().includes(filter.toLowerCase())
-  );
+    // Tri
+    filtered.sort((a, b) => {
+      let aValue: any = a[sortBy];
+      let bValue: any = b[sortBy];
 
-  const handlePromoteUser = (id: string) => {
-    database.promoteToAdmin(id);
-    refreshUsers();
+      if (sortBy === 'createdAt' || sortBy === 'lastLogin') {
+        aValue = new Date(aValue || 0).getTime();
+        bValue = new Date(bValue || 0).getTime();
+      } else {
+        aValue = aValue?.toLowerCase() || '';
+        bValue = bValue?.toLowerCase() || '';
+      }
+
+      if (sortOrder === 'asc') {
+        return aValue > bValue ? 1 : -1;
+      } else {
+        return aValue < bValue ? 1 : -1;
+      }
+    });
+
+    setFilteredUsers(filtered);
+  }, [users, searchTerm, sortBy, sortOrder]);
+
+  const handleDeleteUser = (userId: string) => {
+    const success = database.deleteUser(userId);
+    if (success) {
+      loadUsers();
+      setShowDeleteConfirm(null);
+      setSelectedUser(null);
+    }
   };
 
-  const handleDemoteUser = (id: string) => {
-    database.demoteToUser(id);
-    refreshUsers();
+  const handlePromoteUser = () => {
+    if (!promoteUserId.trim()) return;
+    
+    const success = database.promoteToAdminById(promoteUserId.trim());
+    if (success) {
+      loadUsers();
+      setShowPromoteModal(false);
+      setPromoteUserId('');
+    } else {
+      alert('Utilisateur non trouvé ou erreur lors de la promotion');
+    }
   };
 
-  const handleDeleteUser = (id: string) => {
-    database.deleteUser(id);
-    refreshUsers();
-    setShowDeleteConfirm(null);
-    if (selectedUser?.id === id) setSelectedUser(null);
+  const handleDemoteUser = (userId: string) => {
+    if (window.confirm('Êtes-vous sûr de vouloir rétrograder cet administrateur ?')) {
+      const success = database.demoteFromAdmin(userId);
+      if (success) {
+        loadUsers();
+        setSelectedUser(null);
+      }
+    }
+  };
+
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return 'Jamais';
+    return new Date(dateString).toLocaleDateString('fr-FR', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  const exportData = () => {
+    const dataStr = JSON.stringify(users, null, 2);
+    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(dataBlob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `modfusion-users-${new Date().toISOString().split('T')[0]}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const resetDatabase = () => {
+    if (window.confirm('⚠️ ATTENTION ! Cette action supprimera TOUTES les données utilisateur. Cette action est irréversible. Êtes-vous sûr ?')) {
+      database.reset();
+      loadUsers();
+      setSelectedUser(null);
+    }
   };
 
   return (
-    <div style={{ padding: 24, backgroundColor: '#111', color: 'white', minHeight: '100vh' }}>
-      <h1 style={{ fontSize: 32, fontWeight: 'bold', marginBottom: 24 }}>Administration des utilisateurs</h1>
-
-      <input
-        type="text"
-        placeholder="Rechercher un utilisateur..."
-        value={filter}
-        onChange={e => setFilter(e.target.value)}
-        style={{
-          marginBottom: 16,
-          padding: 8,
-          borderRadius: 6,
-          border: 'none',
-          width: '100%',
-          maxWidth: 400,
-          backgroundColor: '#222',
-          color: 'white',
-        }}
-      />
-
-      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-        <thead>
-          <tr style={{ borderBottom: '1px solid #444' }}>
-            <th style={{ padding: 12, textAlign: 'left' }}>Utilisateur</th>
-            <th style={{ padding: 12, textAlign: 'left' }}>Email</th>
-            <th style={{ padding: 12, textAlign: 'left' }}>Rôle</th>
-            <th style={{ padding: 12, textAlign: 'left' }}>Créé le</th>
-            <th style={{ padding: 12, textAlign: 'left' }}>Dernière connexion</th>
-            <th style={{ padding: 12, textAlign: 'left' }}>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {filteredUsers.length === 0 && (
-            <tr>
-              <td colSpan={6} style={{ padding: 24, textAlign: 'center', color: '#777' }}>
-                Aucun utilisateur trouvé
-              </td>
-            </tr>
-          )}
-          {filteredUsers.map(user => (
-            <tr key={user.id} style={{ borderBottom: '1px solid #444' }}>
-              <td style={{ padding: 12, display: 'flex', alignItems: 'center', gap: 12 }}>
-                <div style={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: '50%',
-                  background: user.role === 'admin' ? 'linear-gradient(90deg, #f97316, #dc2626)' : 'linear-gradient(90deg, #3b82f6, #8b5cf6)',
-                  display: 'flex',
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                  fontWeight: 'bold',
-                  color: 'white',
-                }}>
-                  {user.firstName.charAt(0).toUpperCase()}{user.lastName.charAt(0).toUpperCase()}
-                </div>
-                <div>
-                  <div>{user.firstName} {user.lastName}</div>
-                  <div style={{ fontSize: 12, fontFamily: 'monospace', color: '#666' }}>{user.id}</div>
-                </div>
-              </td>
-              <td style={{ padding: 12 }}>{user.email}</td>
-              <td style={{ padding: 12 }}>
-                <span style={{
-                  backgroundColor: user.role === 'admin' ? 'rgba(220, 38, 38, 0.3)' : 'rgba(107, 114, 128, 0.3)',
-                  color: user.role === 'admin' ? '#dc2626' : '#6b7280',
-                  padding: '4px 8px',
-                  borderRadius: 9999,
-                  fontWeight: '600',
-                  fontSize: 12,
-                }}>
-                  {user.role.toUpperCase()}
-                </span>
-              </td>
-              <td style={{ padding: 12 }}>{formatDate(user.createdAt)}</td>
-              <td style={{ padding: 12 }}>{formatDate(user.lastLogin)}</td>
-              <td style={{ padding: 12, display: 'flex', gap: 8 }}>
-                <button onClick={() => setSelectedUser(user)} title="Voir détails" style={buttonStyle}>Voir</button>
-
-                {user.role === 'admin' ? (
-                  <button
-                    onClick={() => handleDemoteUser(user.id)}
-                    disabled={database.isProtectedAdmin(user.id)}
-                    title={database.isProtectedAdmin(user.id) ? "Administrateur protégé" : "Rétrograder"}
-                    style={{
-                      ...buttonStyle,
-                      backgroundColor: database.isProtectedAdmin(user.id) ? '#555' : '#ea580c',
-                      cursor: database.isProtectedAdmin(user.id) ? 'not-allowed' : 'pointer',
-                    }}
-                  >
-                    Rétrograder
-                  </button>
-                ) : (
-                  <button onClick={() => handlePromoteUser(user.id)} title="Promouvoir admin" style={{ ...buttonStyle, backgroundColor: '#22c55e' }}>
-                    Promouvoir
-                  </button>
-                )}
-
-                <button
-                  onClick={() => setShowDeleteConfirm(user.id)}
-                  disabled={database.isProtectedAdmin(user.id)}
-                  title={database.isProtectedAdmin(user.id) ? "Administrateur protégé" : "Supprimer"}
-                  style={{
-                    ...buttonStyle,
-                    backgroundColor: database.isProtectedAdmin(user.id) ? '#555' : '#dc2626',
-                    cursor: database.isProtectedAdmin(user.id) ? 'not-allowed' : 'pointer',
-                  }}
-                >
-                  Supprimer
-                </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-
-      {/* Modal détails utilisateur */}
-      {selectedUser && (
-        <div style={modalOverlayStyle} onClick={() => setSelectedUser(null)}>
-          <div style={modalContentStyle} onClick={e => e.stopPropagation()}>
-            <button onClick={() => setSelectedUser(null)} style={closeButtonStyle}>×</button>
-            <h2 style={{ fontSize: 24, fontWeight: 'bold', marginBottom: 16 }}>Détails utilisateur</h2>
-
-            <div style={{ display: 'flex', gap: 16, marginBottom: 24, alignItems: 'center' }}>
-              <div style={{
-                width: 64,
-                height: 64,
-                borderRadius: '50%',
-                background: selectedUser.role === 'admin' ? 'linear-gradient(90deg, #f97316, #dc2626)' : 'linear-gradient(90deg, #3b82f6, #8b5cf6)',
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-                fontWeight: 'bold',
-                color: 'white',
-                fontSize: 24,
-              }}>
-                {selectedUser.firstName.charAt(0).toUpperCase()}{selectedUser.lastName.charAt(0).toUpperCase()}
+    <div className="max-w-7xl mx-auto p-6">
+      <div className="bg-gray-900/90 backdrop-blur-sm border border-gray-700 rounded-2xl shadow-2xl">
+        {/* Header */}
+        <div className="p-6 border-b border-gray-700">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <div className="p-3 bg-red-500/20 border border-red-500/50 rounded-lg">
+                <Database className="w-8 h-8 text-red-400" />
               </div>
               <div>
-                <div style={{ fontSize: 20, fontWeight: '600' }}>{selectedUser.firstName} {selectedUser.lastName}</div>
-                <div style={{ color: '#777' }}>{selectedUser.email}</div>
+                <h1 className="text-2xl font-bold text-white">Panneau d'Administration</h1>
+                <p className="text-gray-400">Gestion de la base de données utilisateurs</p>
               </div>
             </div>
+            
+            <div className="flex items-center space-x-3">
+              <button
+                onClick={() => setShowPromoteModal(true)}
+                className="flex items-center space-x-2 px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg transition-colors"
+              >
+                <Crown className="w-4 h-4" />
+                <span>Promouvoir Admin</span>
+              </button>
+              
+              <button
+                onClick={loadUsers}
+                className="flex items-center space-x-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+              >
+                <RefreshCw className="w-4 h-4" />
+                <span>Actualiser</span>
+              </button>
+              
+              <button
+                onClick={exportData}
+                className="flex items-center space-x-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors"
+              >
+                <Download className="w-4 h-4" />
+                <span>Exporter</span>
+              </button>
+              
+              <button
+                onClick={resetDatabase}
+                className="flex items-center space-x-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
+              >
+                <Trash2 className="w-4 h-4" />
+                <span>Reset DB</span>
+              </button>
+            </div>
+          </div>
+        </div>
 
-            <div style={{ display: 'flex', gap: 32, flexWrap: 'wrap' }}>
-              <div style={{ minWidth: 200 }}>
-                <h3 style={{ fontWeight: '600', marginBottom: 8 }}>Informations personnelles</h3>
-                <p><strong>Prénom:</strong> {selectedUser.firstName}</p>
-                <p><strong>Nom:</strong> {selectedUser.lastName}</p>
-                <p><strong>Email:</strong> {selectedUser.email}</p>
-              </div>
-              <div style={{ minWidth: 200 }}>
-                <h3 style={{ fontWeight: '600', marginBottom: 8 }}>Informations système</h3>
-                <p><strong>ID utilisateur:</strong> <code>{selectedUser.id}</code></p>
-                <p><strong>Rôle:</strong> {selectedUser.role === 'admin' ? 'Administrateur' : 'Utilisateur'}</p>
-                <p><strong>Créé le:</strong> {formatDate(selectedUser.createdAt)}</p>
-                <p><strong>Dernière connexion:</strong> {formatDate(selectedUser.lastLogin)}</p>
+        {/* Stats */}
+        <div className="p-6 border-b border-gray-700">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="p-4 bg-gradient-to-r from-blue-500/20 to-blue-600/20 border border-blue-500/30 rounded-lg">
+              <div className="flex items-center space-x-3">
+                <Users className="w-8 h-8 text-blue-400" />
+                <div>
+                  <div className="text-2xl font-bold text-white">{users.length}</div>
+                  <div className="text-sm text-gray-300">Utilisateurs totaux</div>
+                </div>
               </div>
             </div>
-
-            {!database.isProtectedAdmin(selectedUser.id) ? (
-              <div style={{ marginTop: 24, display: 'flex', gap: 16 }}>
-                {selectedUser.role === 'admin' ? (
-                  <button
-                    onClick={() => { handleDemoteUser(selectedUser.id); setSelectedUser(null); }}
-                    style={{ ...buttonStyle, backgroundColor: '#ea580c' }}
-                  >
-                    Rétrograder
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => { handlePromoteUser(selectedUser.id); setSelectedUser(null); }}
-                    style={{ ...buttonStyle, backgroundColor: '#22c55e' }}
-                  >
-                    Promouvoir Admin
-                  </button>
-                )}
-                <button
-                  onClick={() => { setShowDeleteConfirm(selectedUser.id); setSelectedUser(null); }}
-                  style={{ ...buttonStyle, backgroundColor: '#dc2626' }}
-                >
-                  Supprimer
-                </button>
+            
+            <div className="p-4 bg-gradient-to-r from-orange-500/20 to-orange-600/20 border border-orange-500/30 rounded-lg">
+              <div className="flex items-center space-x-3">
+                <Crown className="w-8 h-8 text-orange-400" />
+                <div>
+                  <div className="text-2xl font-bold text-white">
+                    {users.filter(u => u.role === 'admin').length}
+                  </div>
+                  <div className="text-sm text-gray-300">Administrateurs</div>
+                </div>
               </div>
-            ) : (
-              <div style={{ marginTop: 24, padding: 12, borderRadius: 6, backgroundColor: 'rgba(202, 138, 4, 0.3)', color: '#ca8a04' }}>
-                Administrateur protégé — suppression et rétrogradation interdites.
+            </div>
+            
+            <div className="p-4 bg-gradient-to-r from-green-500/20 to-green-600/20 border border-green-500/30 rounded-lg">
+              <div className="flex items-center space-x-3">
+                <Clock className="w-8 h-8 text-green-400" />
+                <div>
+                  <div className="text-2xl font-bold text-white">
+                    {users.filter(u => u.lastLogin && new Date(u.lastLogin) > new Date(Date.now() - 24*60*60*1000)).length}
+                  </div>
+                  <div className="text-sm text-gray-300">Actifs (24h)</div>
+                </div>
+              </div>
+            </div>
+            
+            <div className="p-4 bg-gradient-to-r from-purple-500/20 to-purple-600/20 border border-purple-500/30 rounded-lg">
+              <div className="flex items-center space-x-3">
+                <Calendar className="w-8 h-8 text-purple-400" />
+                <div>
+                  <div className="text-2xl font-bold text-white">
+                    {users.filter(u => new Date(u.createdAt) > new Date(Date.now() - 7*24*60*60*1000)).length}
+                  </div>
+                  <div className="text-sm text-gray-300">Nouveaux (7j)</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Filters */}
+        <div className="p-6 border-b border-gray-700">
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="flex-1">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                <input
+                  type="text"
+                  placeholder="Rechercher par nom, email ou ID..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-10 pr-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+            </div>
+            
+            <div className="flex gap-2">
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as any)}
+                className="px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="createdAt">Date création</option>
+                <option value="lastLogin">Dernière connexion</option>
+                <option value="email">Email</option>
+                <option value="firstName">Prénom</option>
+              </select>
+              
+              <button
+                onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+                className="px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white hover:bg-gray-700 transition-colors"
+              >
+                {sortOrder === 'asc' ? '↑' : '↓'}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Users Table */}
+        <div className="p-6">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-gray-700">
+                  <th className="text-left py-3 px-4 text-gray-300 font-medium">Utilisateur</th>
+                  <th className="text-left py-3 px-4 text-gray-300 font-medium">Email</th>
+                  <th className="text-left py-3 px-4 text-gray-300 font-medium">Rôle</th>
+                  <th className="text-left py-3 px-4 text-gray-300 font-medium">Créé le</th>
+                  <th className="text-left py-3 px-4 text-gray-300 font-medium">Dernière connexion</th>
+                  <th className="text-left py-3 px-4 text-gray-300 font-medium">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredUsers.map((user) => (
+                  <tr key={user.id} className="border-b border-gray-800 hover:bg-gray-800/50 transition-colors">
+                    <td className="py-4 px-4">
+                      <div className="flex items-center space-x-3">
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                          user.role === 'admin' 
+                            ? 'bg-gradient-to-r from-orange-500 to-red-600' 
+                            : 'bg-gradient-to-r from-blue-500 to-purple-600'
+                        }`}>
+                          <span className="text-white text-sm font-semibold">
+                            {user.firstName.charAt(0).toUpperCase()}{user.lastName.charAt(0).toUpperCase()}
+                          </span>
+                        </div>
+                        <div>
+                          <div className="text-white font-medium">{user.firstName} {user.lastName}</div>
+                          <div className="text-gray-400 text-sm font-mono">{user.id}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="py-4 px-4 text-gray-300">{user.email}</td>
+                    <td className="py-4 px-4">
+                      <div className="flex items-center space-x-2">
+                        {user.role === 'admin' ? (
+                          <div className="px-2 py-1 bg-red-500/20 border border-red-500/50 rounded-full">
+                            <span className="text-red-400 text-xs font-medium">ADMIN</span>
+                          </div>
+                        ) : (
+                          <div className="px-2 py-1 bg-gray-500/20 border border-gray-500/50 rounded-full">
+                            <span className="text-gray-400 text-xs font-medium">USER</span>
+                          </div>
+                        )}
+                      </div>
+                    </td>
+                    <td className="py-4 px-4 text-gray-300">{formatDate(user.createdAt)}</td>
+                    <td className="py-4 px-4 text-gray-300">{formatDate(user.lastLogin)}</td>
+                    <td className="py-4 px-4">
+                      <div className="flex space-x-2">
+                        <button
+                          onClick={() => setSelectedUser(user)}
+                          className="p-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+                          title="Voir les détails"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </button>
+                        
+                        {user.role === 'admin' ? (
+                          <button
+                            onClick={() => handleDemoteUser(user.id)}
+                            className="p-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg transition-colors"
+                            title="Rétrograder"
+                          >
+                            <UserMinus className="w-4 h-4" />
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => {
+                              setPromoteUserId(user.id);
+                              setShowPromoteModal(true);
+                            }}
+                            className="p-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors"
+                            title="Promouvoir admin"
+                          >
+                            <UserPlus className="w-4 h-4" />
+                          </button>
+                        )}
+                        
+                        <button
+                          onClick={() => setShowDeleteConfirm(user.id)}
+                          className="p-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
+                          title="Supprimer"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            
+            {filteredUsers.length === 0 && (
+              <div className="text-center py-12">
+                <Users className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+                <p className="text-gray-400 text-lg">Aucun utilisateur trouvé</p>
               </div>
             )}
           </div>
         </div>
+      </div>
+
+      {/* Promote User Modal */}
+      {showPromoteModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setShowPromoteModal(false)} />
+          
+          <div className="relative bg-gray-900 rounded-2xl shadow-2xl w-full max-w-md border border-orange-500/50">
+            <div className="p-6">
+              <div className="flex items-center space-x-4 mb-4">
+                <div className="p-3 bg-orange-500/20 border border-orange-500/50 rounded-lg">
+                  <Crown className="w-6 h-6 text-orange-400" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-white">Promouvoir Administrateur</h3>
+                  <p className="text-gray-400">Entrez l'ID de l'utilisateur</p>
+                </div>
+              </div>
+              
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  ID Utilisateur
+                </label>
+                <input
+                  type="text"
+                  value={promoteUserId}
+                  onChange={(e) => setPromoteUserId(e.target.value)}
+                  placeholder="Entrez l'ID de l'utilisateur"
+                  className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  L'ID utilisateur se trouve dans le tableau ci-dessus
+                </p>
+              </div>
+              
+              <div className="flex space-x-3">
+                <button
+                  onClick={handlePromoteUser}
+                  className="flex-1 py-3 bg-orange-600 hover:bg-orange-700 text-white font-semibold rounded-lg transition-colors"
+                >
+                  Promouvoir
+                </button>
+                <button
+                  onClick={() => {
+                    setShowPromoteModal(false);
+                    setPromoteUserId('');
+                  }}
+                  className="flex-1 py-3 bg-gray-600 hover:bg-gray-700 text-white font-semibold rounded-lg transition-colors"
+                >
+                  Annuler
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
-      {/* Confirmation suppression */}
+      {/* User Detail Modal */}
+      {selectedUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setSelectedUser(null)} />
+          
+          <div className="relative bg-gray-900 rounded-2xl shadow-2xl w-full max-w-2xl border border-gray-700 max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-gray-700">
+              <div className="flex items-center justify-between">
+                <h2 className="text-2xl font-bold text-white">Détails utilisateur</h2>
+                <button
+                  onClick={() => setSelectedUser(null)}
+                  className="text-gray-400 hover:text-white transition-colors"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+            
+            <div className="p-6 space-y-6">
+              <div className="flex items-center space-x-4">
+                <div className={`w-16 h-16 rounded-full flex items-center justify-center ${
+                  selectedUser.role === 'admin' 
+                    ? 'bg-gradient-to-r from-orange-500 to-red-600' 
+                    : 'bg-gradient-to-r from-blue-500 to-purple-600'
+                }`}>
+                  <span className="text-white text-xl font-bold">
+                    {selectedUser.firstName.charAt(0).toUpperCase()}{selectedUser.lastName.charAt(0).toUpperCase()}
+                  </span>
+                </div>
+                <div>
+                  <div className="flex items-center space-x-3">
+                    <h3 className="text-xl font-bold text-white">{selectedUser.firstName} {selectedUser.lastName}</h3>
+                    {selectedUser.role === 'admin' && (
+                      <div className="px-3 py-1 bg-red-500/20 border border-red-500/50 rounded-full">
+                        <span className="text-red-400 text-sm font-medium">ADMIN</span>
+                      </div>
+                    )}
+                  </div>
+                  <p className="text-gray-400">{selectedUser.email}</p>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-4">
+                  <h4 className="text-lg font-semibold text-white">Informations personnelles</h4>
+                  
+                  <div className="space-y-3">
+                    <div className="flex items-center space-x-3 p-3 bg-gray-800/50 rounded-lg">
+                      <User className="w-5 h-5 text-gray-400" />
+                      <div>
+                        <div className="text-sm text-gray-400">Prénom</div>
+                        <div className="text-white">{selectedUser.firstName}</div>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center space-x-3 p-3 bg-gray-800/50 rounded-lg">
+                      <User className="w-5 h-5 text-gray-400" />
+                      <div>
+                        <div className="text-sm text-gray-400">Nom</div>
+                        <div className="text-white">{selectedUser.lastName}</div>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center space-x-3 p-3 bg-gray-800/50 rounded-lg">
+                      <Mail className="w-5 h-5 text-gray-400" />
+                      <div>
+                        <div className="text-sm text-gray-400">Email</div>
+                        <div className="text-white">{selectedUser.email}</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="space-y-4">
+                  <h4 className="text-lg font-semibold text-white">Informations système</h4>
+                  
+                  <div className="space-y-3">
+                    <div className="p-3 bg-gray-800/50 rounded-lg">
+                      <div className="text-sm text-gray-400">ID utilisateur</div>
+                      <div className="text-white font-mono text-sm">{selectedUser.id}</div>
+                    </div>
+                    
+                    <div className="flex items-center space-x-3 p-3 bg-gray-800/50 rounded-lg">
+                      <Shield className={`w-5 h-5 ${selectedUser.role === 'admin' ? 'text-red-400' : 'text-gray-400'}`} />
+                      <div>
+                        <div className="text-sm text-gray-400">Rôle</div>
+                        <div className={`font-medium ${selectedUser.role === 'admin' ? 'text-red-400' : 'text-white'}`}>
+                          {selectedUser.role === 'admin' ? 'Administrateur' : 'Utilisateur'}
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center space-x-3 p-3 bg-gray-800/50 rounded-lg">
+                      <Calendar className="w-5 h-5 text-gray-400" />
+                      <div>
+                        <div className="text-sm text-gray-400">Créé le</div>
+                        <div className="text-white">{formatDate(selectedUser.createdAt)}</div>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center space-x-3 p-3 bg-gray-800/50 rounded-lg">
+                      <Clock className="w-5 h-5 text-gray-400" />
+                      <div>
+                        <div className="text-sm text-gray-400">Dernière connexion</div>
+                        <div className="text-white">{formatDate(selectedUser.lastLogin)}</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Raw Data */}
+              <div className="space-y-4">
+                <h4 className="text-lg font-semibold text-white">Données brutes (JSON)</h4>
+                <pre className="p-4 bg-gray-800 rounded-lg text-sm text-gray-300 overflow-x-auto">
+                  {JSON.stringify(selectedUser, null, 2)}
+                </pre>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
       {showDeleteConfirm && (
-        <div style={modalOverlayStyle} onClick={() => setShowDeleteConfirm(null)}>
-          <div style={{ ...modalContentStyle, maxWidth: 400, borderColor: '#dc2626' }} onClick={e => e.stopPropagation()}>
-            <h3 style={{ fontSize: 20, fontWeight: 'bold', color: '#dc2626', marginBottom: 16 }}>Supprimer l'utilisateur</h3>
-            <p style={{ marginBottom: 24 }}>Êtes-vous sûr de vouloir supprimer cet utilisateur ? Cette action est irréversible.</p>
-            <div style={{ display: 'flex', gap: 12 }}>
-              <button
-                onClick={() => { if (showDeleteConfirm) { handleDeleteUser(showDeleteConfirm); } }}
-                style={{ ...buttonStyle, backgroundColor: '#dc2626' }}
-              >
-                Supprimer
-              </button>
-              <button
-                onClick={() => setShowDeleteConfirm(null)}
-                style={{ ...buttonStyle, backgroundColor: '#555' }}
-              >
-                Annuler
-              </button>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setShowDeleteConfirm(null)} />
+          
+          <div className="relative bg-gray-900 rounded-2xl shadow-2xl w-full max-w-md border border-red-500/50">
+            <div className="p-6">
+              <div className="flex items-center space-x-4 mb-4">
+                <div className="p-3 bg-red-500/20 border border-red-500/50 rounded-lg">
+                  <Trash2 className="w-6 h-6 text-red-400" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-white">Supprimer l'utilisateur</h3>
+                  <p className="text-gray-400">Cette action est irréversible</p>
+                </div>
+              </div>
+              
+              <p className="text-gray-300 mb-6">
+                Êtes-vous sûr de vouloir supprimer cet utilisateur ? Toutes ses données seront perdues définitivement.
+              </p>
+              
+              <div className="flex space-x-3">
+                <button
+                  onClick={() => handleDeleteUser(showDeleteConfirm)}
+                  className="flex-1 py-3 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg transition-colors"
+                >
+                  Supprimer
+                </button>
+                <button
+                  onClick={() => setShowDeleteConfirm(null)}
+                  className="flex-1 py-3 bg-gray-600 hover:bg-gray-700 text-white font-semibold rounded-lg transition-colors"
+                >
+                  Annuler
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -323,41 +600,3 @@ const AdminPanel: React.FC = () => {
     </div>
   );
 };
-
-const buttonStyle: React.CSSProperties = {
-  padding: '6px 12px',
-  borderRadius: 6,
-  border: 'none',
-  color: 'white',
-  cursor: 'pointer',
-  fontWeight: '600',
-};
-
-const modalOverlayStyle: React.CSSProperties = {
-  position: 'fixed',
-  inset: 0,
-  backgroundColor: 'rgba(0,0,0,0.8)',
-  display: 'flex',
-  justifyContent: 'center',
-  alignItems: 'center',
-  padding: 24,
-  zIndex: 9999,
-};
-
-const modalContentStyle: React.CSSProperties = {
-  position: 'relative',
-  backgroundColor: '#222',
-  padding: 24,
-  borderRadius: 12,
-  maxWidth: '90vw',
-  maxHeight: '90vh',
-  overflowY: 'auto',
-  border: '2px solid #444',
-};
-
-const closeButtonStyle: React.CSSProperties = {
-  position: 'absolute',
-  top: 12,
-  right: 12,
-  background: 'transparent',
-  border: 'none
