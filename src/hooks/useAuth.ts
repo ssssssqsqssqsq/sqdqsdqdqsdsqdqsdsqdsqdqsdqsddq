@@ -33,7 +33,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, []);
 
   const login = async (email: string, password: string) => {
-    // Simuler un appel API de connexion (à remplacer par ta logique réelle)
+    // Simulation d'une connexion
     const fakeUser: User = {
       firstName: 'Jean',
       lastName: 'Dupont',
