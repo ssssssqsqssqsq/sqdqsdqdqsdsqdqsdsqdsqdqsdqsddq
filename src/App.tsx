@@ -10,10 +10,11 @@ import {
   ArrowLeft,
   Database
 } from 'lucide-react';
+
 import { useAuth } from './hooks/useAuth';
 import { AuthModal } from './components/AuthModal';
 import { UserMenu } from './components/UserMenu';
-import { UserProfile } from './components/UserProfile';
+import UserProfile from './components/UserProfile'; // import par défaut
 import { AdminPanel } from './components/AdminPanel';
 
 function App() {
@@ -203,13 +204,7 @@ function App() {
                     >
                       S'inscrire gratuitement
                     </button>
-                    <span className="text-gray-500">•</span>
-                    <button
-                      onClick={() => openAuthModal('login')}
-                      className="text-gray-400 hover:text-white text-sm transition-colors"
-                    >
-                      Déjà un compte ?
-                    </button>
+                    <span className="text-gray-400 text-sm">ou connectez-vous</span>
                   </div>
                 </div>
               )}
@@ -217,15 +212,16 @@ function App() {
           </main>
         )}
 
-        {currentView === 'profile' && isAuthenticated && <UserProfile />}
+        {currentView === 'profile' && <UserProfile />}
 
         {currentView === 'admin' && isAdmin && <AdminPanel />}
 
-        <AuthModal 
-          isOpen={isAuthModalOpen} 
-          mode={authModalMode} 
-          onClose={() => setIsAuthModalOpen(false)} 
-        />
+        {isAuthModalOpen && (
+          <AuthModal 
+            mode={authModalMode} 
+            onClose={() => setIsAuthModalOpen(false)} 
+          />
+        )}
       </div>
     </div>
   );
