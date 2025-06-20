@@ -1,23 +1,97 @@
 import React, { useState, useEffect } from 'react';
-import { UserPlus, UserMinus, Trash2, Eye, Lock, Users, User, Mail, Shield, Calendar, Clock } from 'react-feather'; // icônes feather
-import { formatDate } from '../utils/formatDate'; // ta fonction de formatage de date
-import { database } from '../services/database'; // ta db simulée
-import type { User as UserType } from '../types/user';
+import {
+  UserPlus,
+  UserMinus,
+  Trash2,
+  Eye,
+  Lock,
+} from 'react-feather';
 
-interface AdminPanelProps {}
+interface UserType {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  role: 'user' | 'admin';
+  createdAt: Date;
+  lastLogin: Date;
+}
 
-const AdminPanel: React.FC<AdminPanelProps> = () => {
+// Simulate a database service
+const database = {
+  users: [
+    {
+      id: '1',
+      firstName: 'Alice',
+      lastName: 'Durand',
+      email: 'alice@example.com',
+      role: 'admin',
+      createdAt: new Date('2023-01-01T10:00:00'),
+      lastLogin: new Date('2025-06-15T12:00:00'),
+    },
+    {
+      id: '2',
+      firstName: 'Bob',
+      lastName: 'Martin',
+      email: 'bob@example.com',
+      role: 'user',
+      createdAt: new Date('2024-02-20T09:00:00'),
+      lastLogin: new Date('2025-06-19T14:00:00'),
+    },
+  ] as UserType[],
+
+  getUsers() {
+    return [...this.users];
+  },
+
+  promoteToAdmin(id: string) {
+    this.users = this.users.map((u) =>
+      u.id === id ? { ...u, role: 'admin' } : u
+    );
+  },
+
+  demoteToUser(id: string) {
+    if (this.isProtectedAdmin(id)) return;
+    this.users = this.users.map((u) =>
+      u.id === id ? { ...u, role: 'user' } : u
+    );
+  },
+
+  deleteUser(id: string) {
+    if (this.isProtectedAdmin(id)) return;
+    this.users = this.users.filter((u) => u.id !== id);
+  },
+
+  isProtectedAdmin(id: string) {
+    // Par exemple, admin avec id '1' est protégé
+    return id === '1';
+  },
+};
+
+// Fonction utilitaire pour formater la date
+function formatDate(date: Date) {
+  return date.toLocaleDateString('fr-FR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+const AdminPanel: React.FC = () => {
   const [users, setUsers] = useState<UserType[]>([]);
   const [selectedUser, setSelectedUser] = useState<UserType | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
-  const [filter, setFilter] = useState<string>('');
+  const [filter, setFilter] = useState('');
 
   useEffect(() => {
-    // Charger la liste des utilisateurs (simulateur)
     setUsers(database.getUsers());
   }, []);
 
-  // Filtrer la liste selon recherche
+  // Mise à jour liste utilisateurs après modifications
+  const refreshUsers = () => setUsers(database.getUsers());
+
   const filteredUsers = users.filter(
     (u) =>
       u.firstName.toLowerCase().includes(filter.toLowerCase()) ||
@@ -25,23 +99,21 @@ const AdminPanel: React.FC<AdminPanelProps> = () => {
       u.email.toLowerCase().includes(filter.toLowerCase())
   );
 
-  // Actions
   const handlePromoteUser = (id: string) => {
     database.promoteToAdmin(id);
-    setUsers(database.getUsers());
+    refreshUsers();
   };
 
   const handleDemoteUser = (id: string) => {
-    if (database.isProtectedAdmin(id)) return;
     database.demoteToUser(id);
-    setUsers(database.getUsers());
+    refreshUsers();
   };
 
   const handleDeleteUser = (id: string) => {
-    if (database.isProtectedAdmin(id)) return;
     database.deleteUser(id);
-    setUsers(database.getUsers());
+    refreshUsers();
     setShowDeleteConfirm(null);
+    if (selectedUser?.id === id) setSelectedUser(null);
   };
 
   return (
@@ -258,4 +330,28 @@ const AdminPanel: React.FC<AdminPanelProps> = () => {
             <h3 className="text-xl font-bold text-red-500 mb-4">Supprimer l'utilisateur</h3>
             <p className="mb-6">Êtes-vous sûr de vouloir supprimer cet utilisateur ? Cette action est irréversible.</p>
             <div className="flex space-x-4">
-             
+              <button
+                onClick={() => {
+                  if (showDeleteConfirm) {
+                    handleDeleteUser(showDeleteConfirm);
+                  }
+                }}
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 rounded text-white"
+              >
+                Supprimer
+              </button>
+              <button
+                onClick={() => setShowDeleteConfirm(null)}
+                className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded text-white"
+              >
+                Annuler
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default AdminPanel;
