@@ -32,6 +32,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMo
     confirmPassword: '',
   });
 
+  // Mettre à jour le mode quand initialMode change
+  useEffect(() => {
+    setMode(initialMode);
+  }, [initialMode]);
+
   // Reset form when modal opens/closes or mode changes
   useEffect(() => {
     if (isOpen) {
@@ -51,7 +56,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMo
         confirmPassword: '',
       });
     }
-  }, [isOpen, mode]);
+  }, [isOpen]);
+
+  // Reset messages when mode changes
+  useEffect(() => {
+    setError('');
+    setSuccess('');
+  }, [mode]);
 
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -102,9 +113,22 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMo
   };
 
   const switchMode = () => {
-    setMode(mode === 'login' ? 'register' : 'login');
+    const newMode = mode === 'login' ? 'register' : 'login';
+    setMode(newMode);
     setError('');
     setSuccess('');
+    setShowPassword(false);
+    setShowConfirmPassword(false);
+    
+    // Reset forms when switching
+    setLoginForm({ email: '', password: '' });
+    setRegisterForm({
+      email: '',
+      firstName: '',
+      lastName: '',
+      password: '',
+      confirmPassword: '',
+    });
   };
 
   const handleClose = () => {
@@ -217,9 +241,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMo
 
               {/* Demo credentials */}
               <div className="mt-4 p-3 bg-gray-800/50 border border-gray-600 rounded-lg">
-                <p className="text-gray-400 text-xs mb-2">Compte de démonstration :</p>
-                <p className="text-gray-300 text-xs">Email: admin@modfusion.com</p>
-                <p className="text-gray-300 text-xs">Mot de passe: admin123</p>
+                <p className="text-gray-400 text-xs mb-2">🎮 Compte de démonstration :</p>
+                <div className="space-y-1">
+                  <p className="text-gray-300 text-xs">📧 Email: admin@modfusion.com</p>
+                  <p className="text-gray-300 text-xs">🔑 Mot de passe: admin123</p>
+                </div>
               </div>
             </form>
           ) : (
