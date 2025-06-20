@@ -91,34 +91,39 @@ function App() {
                 )}
               </div>
 
-              {/* Navigation Desktop */}
-              <nav className="hidden md:flex items-center space-x-8">
-                <a href="#" className="text-gray-300 hover:text-white transition-colors">
-                  À propos
-                </a>
-                <a href="#" className="text-gray-300 hover:text-white transition-colors">
-                  Bibliothèque
-                </a>
-                <a href="#" className="text-gray-300 hover:text-white transition-colors">
-                  Blog
-                </a>
-                <a href="#" className="bg-yellow-400 text-black px-3 py-1 rounded-md font-medium hover:bg-yellow-300 transition-colors">
-                  ModFusionPrime
-                </a>
-                <a href="#" className="text-gray-300 hover:text-white transition-colors">
-                  Support
-                </a>
-                <a href="#" className="text-gray-300 hover:text-white transition-colors">
-                  Servers
-                </a>
-              </nav>
+              {/* Navigation Desktop - Hidden in admin view */}
+              {currentView !== 'admin' && (
+                <nav className="hidden md:flex items-center space-x-8">
+                  <a href="#" className="text-gray-300 hover:text-white transition-colors">
+                    À propos
+                  </a>
+                  <a href="#" className="text-gray-300 hover:text-white transition-colors">
+                    Bibliothèque
+                  </a>
+                  <a href="#" className="text-gray-300 hover:text-white transition-colors">
+                    Blog
+                  </a>
+                  <a href="#" className="bg-yellow-400 text-black px-3 py-1 rounded-md font-medium hover:bg-yellow-300 transition-colors">
+                    ModFusionPrime
+                  </a>
+                  <a href="#" className="text-gray-300 hover:text-white transition-colors">
+                    Support
+                  </a>
+                  <a href="#" className="text-gray-300 hover:text-white transition-colors">
+                    Servers
+                  </a>
+                </nav>
+              )}
 
               {/* Right side */}
               <div className="hidden md:flex items-center space-x-4">
-                <div className="flex items-center space-x-2 text-gray-300">
-                  <Globe className="w-4 h-4" />
-                  <span>Français</span>
-                </div>
+                {/* Language selector - Hidden in admin view */}
+                {currentView !== 'admin' && (
+                  <div className="flex items-center space-x-2 text-gray-300">
+                    <Globe className="w-4 h-4" />
+                    <span>Français</span>
+                  </div>
+                )}
                 
                 {/* Admin Button - Only visible for admins */}
                 {isAdmin && (
@@ -152,10 +157,12 @@ function App() {
                 )}
               </div>
 
-              {/* Mobile menu button */}
-              <div className="md:hidden">
-                <Menu className="w-6 h-6 text-gray-300" />
-              </div>
+              {/* Mobile menu button - Hidden in admin view */}
+              {currentView !== 'admin' && (
+                <div className="md:hidden">
+                  <Menu className="w-6 h-6 text-gray-300" />
+                </div>
+              )}
             </div>
           </div>
         </header>

@@ -12,7 +12,10 @@ import {
   Clock,
   Shield,
   Download,
-  RefreshCw
+  RefreshCw,
+  UserPlus,
+  Crown,
+  UserMinus
 } from 'lucide-react';
 import { database } from '../services/database';
 import { User as UserType } from '../types/user';
@@ -25,6 +28,8 @@ export const AdminPanel: React.FC = () => {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [selectedUser, setSelectedUser] = useState<UserType | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
+  const [showPromoteModal, setShowPromoteModal] = useState(false);
+  const [promoteUserId, setPromoteUserId] = useState('');
 
   const loadUsers = () => {
     const allUsers = database.getUsers();
@@ -76,6 +81,29 @@ export const AdminPanel: React.FC = () => {
     }
   };
 
+  const handlePromoteUser = () => {
+    if (!promoteUserId.trim()) return;
+    
+    const success = database.promoteToAdminById(promoteUserId.trim());
+    if (success) {
+      loadUsers();
+      setShowPromoteModal(false);
+      setPromoteUserId('');
+    } else {
+      alert('Utilisateur non trouvé ou erreur lors de la promotion');
+    }
+  };
+
+  const handleDemoteUser = (userId: string) => {
+    if (window.confirm('Êtes-vous sûr de vouloir rétrograder cet administrateur ?')) {
+      const success = database.demoteFromAdmin(userId);
+      if (success) {
+        loadUsers();
+        setSelectedUser(null);
+      }
+    }
+  };
+
   const formatDate = (dateString?: string) => {
     if (!dateString) return 'Jamais';
     return new Date(dateString).toLocaleDateString('fr-FR', {
@@ -124,6 +152,14 @@ export const AdminPanel: React.FC = () => {
             
             <div className="flex items-center space-x-3">
               <button
+                onClick={() => setShowPromoteModal(true)}
+                className="flex items-center space-x-2 px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg transition-colors"
+              >
+                <Crown className="w-4 h-4" />
+                <span>Promouvoir Admin</span>
+              </button>
+              
+              <button
                 onClick={loadUsers}
                 className="flex items-center space-x-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
               >
@@ -163,6 +199,18 @@ export const AdminPanel: React.FC = () => {
               </div>
             </div>
             
+            <div className="p-4 bg-gradient-to-r from-orange-500/20 to-orange-600/20 border border-orange-500/30 rounded-lg">
+              <div className="flex items-center space-x-3">
+                <Crown className="w-8 h-8 text-orange-400" />
+                <div>
+                  <div className="text-2xl font-bold text-white">
+                    {users.filter(u => u.role === 'admin').length}
+                  </div>
+                  <div className="text-sm text-gray-300">Administrateurs</div>
+                </div>
+              </div>
+            </div>
+            
             <div className="p-4 bg-gradient-to-r from-green-500/20 to-green-600/20 border border-green-500/30 rounded-lg">
               <div className="flex items-center space-x-3">
                 <Clock className="w-8 h-8 text-green-400" />
@@ -183,18 +231,6 @@ export const AdminPanel: React.FC = () => {
                     {users.filter(u => new Date(u.createdAt) > new Date(Date.now() - 7*24*60*60*1000)).length}
                   </div>
                   <div className="text-sm text-gray-300">Nouveaux (7j)</div>
-                </div>
-              </div>
-            </div>
-            
-            <div className="p-4 bg-gradient-to-r from-orange-500/20 to-orange-600/20 border border-orange-500/30 rounded-lg">
-              <div className="flex items-center space-x-3">
-                <Shield className="w-8 h-8 text-orange-400" />
-                <div>
-                  <div className="text-2xl font-bold text-white">
-                    {Math.round((users.length / 1000) * 100) / 100}KB
-                  </div>
-                  <div className="text-sm text-gray-300">Taille DB</div>
                 </div>
               </div>
             </div>
@@ -247,6 +283,7 @@ export const AdminPanel: React.FC = () => {
                 <tr className="border-b border-gray-700">
                   <th className="text-left py-3 px-4 text-gray-300 font-medium">Utilisateur</th>
                   <th className="text-left py-3 px-4 text-gray-300 font-medium">Email</th>
+                  <th className="text-left py-3 px-4 text-gray-300 font-medium">Rôle</th>
                   <th className="text-left py-3 px-4 text-gray-300 font-medium">Créé le</th>
                   <th className="text-left py-3 px-4 text-gray-300 font-medium">Dernière connexion</th>
                   <th className="text-left py-3 px-4 text-gray-300 font-medium">Actions</th>
@@ -257,7 +294,11 @@ export const AdminPanel: React.FC = () => {
                   <tr key={user.id} className="border-b border-gray-800 hover:bg-gray-800/50 transition-colors">
                     <td className="py-4 px-4">
                       <div className="flex items-center space-x-3">
-                        <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                          user.role === 'admin' 
+                            ? 'bg-gradient-to-r from-orange-500 to-red-600' 
+                            : 'bg-gradient-to-r from-blue-500 to-purple-600'
+                        }`}>
                           <span className="text-white text-sm font-semibold">
                             {user.firstName.charAt(0).toUpperCase()}{user.lastName.charAt(0).toUpperCase()}
                           </span>
@@ -269,6 +310,19 @@ export const AdminPanel: React.FC = () => {
                       </div>
                     </td>
                     <td className="py-4 px-4 text-gray-300">{user.email}</td>
+                    <td className="py-4 px-4">
+                      <div className="flex items-center space-x-2">
+                        {user.role === 'admin' ? (
+                          <div className="px-2 py-1 bg-red-500/20 border border-red-500/50 rounded-full">
+                            <span className="text-red-400 text-xs font-medium">ADMIN</span>
+                          </div>
+                        ) : (
+                          <div className="px-2 py-1 bg-gray-500/20 border border-gray-500/50 rounded-full">
+                            <span className="text-gray-400 text-xs font-medium">USER</span>
+                          </div>
+                        )}
+                      </div>
+                    </td>
                     <td className="py-4 px-4 text-gray-300">{formatDate(user.createdAt)}</td>
                     <td className="py-4 px-4 text-gray-300">{formatDate(user.lastLogin)}</td>
                     <td className="py-4 px-4">
@@ -276,12 +330,36 @@ export const AdminPanel: React.FC = () => {
                         <button
                           onClick={() => setSelectedUser(user)}
                           className="p-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+                          title="Voir les détails"
                         >
                           <Eye className="w-4 h-4" />
                         </button>
+                        
+                        {user.role === 'admin' ? (
+                          <button
+                            onClick={() => handleDemoteUser(user.id)}
+                            className="p-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg transition-colors"
+                            title="Rétrograder"
+                          >
+                            <UserMinus className="w-4 h-4" />
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => {
+                              setPromoteUserId(user.id);
+                              setShowPromoteModal(true);
+                            }}
+                            className="p-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors"
+                            title="Promouvoir admin"
+                          >
+                            <UserPlus className="w-4 h-4" />
+                          </button>
+                        )}
+                        
                         <button
                           onClick={() => setShowDeleteConfirm(user.id)}
                           className="p-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
+                          title="Supprimer"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
@@ -301,6 +379,61 @@ export const AdminPanel: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Promote User Modal */}
+      {showPromoteModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setShowPromoteModal(false)} />
+          
+          <div className="relative bg-gray-900 rounded-2xl shadow-2xl w-full max-w-md border border-orange-500/50">
+            <div className="p-6">
+              <div className="flex items-center space-x-4 mb-4">
+                <div className="p-3 bg-orange-500/20 border border-orange-500/50 rounded-lg">
+                  <Crown className="w-6 h-6 text-orange-400" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-white">Promouvoir Administrateur</h3>
+                  <p className="text-gray-400">Entrez l'ID de l'utilisateur</p>
+                </div>
+              </div>
+              
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  ID Utilisateur
+                </label>
+                <input
+                  type="text"
+                  value={promoteUserId}
+                  onChange={(e) => setPromoteUserId(e.target.value)}
+                  placeholder="Entrez l'ID de l'utilisateur"
+                  className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  L'ID utilisateur se trouve dans le tableau ci-dessus
+                </p>
+              </div>
+              
+              <div className="flex space-x-3">
+                <button
+                  onClick={handlePromoteUser}
+                  className="flex-1 py-3 bg-orange-600 hover:bg-orange-700 text-white font-semibold rounded-lg transition-colors"
+                >
+                  Promouvoir
+                </button>
+                <button
+                  onClick={() => {
+                    setShowPromoteModal(false);
+                    setPromoteUserId('');
+                  }}
+                  className="flex-1 py-3 bg-gray-600 hover:bg-gray-700 text-white font-semibold rounded-lg transition-colors"
+                >
+                  Annuler
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* User Detail Modal */}
       {selectedUser && (
@@ -322,13 +455,24 @@ export const AdminPanel: React.FC = () => {
             
             <div className="p-6 space-y-6">
               <div className="flex items-center space-x-4">
-                <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                <div className={`w-16 h-16 rounded-full flex items-center justify-center ${
+                  selectedUser.role === 'admin' 
+                    ? 'bg-gradient-to-r from-orange-500 to-red-600' 
+                    : 'bg-gradient-to-r from-blue-500 to-purple-600'
+                }`}>
                   <span className="text-white text-xl font-bold">
                     {selectedUser.firstName.charAt(0).toUpperCase()}{selectedUser.lastName.charAt(0).toUpperCase()}
                   </span>
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold text-white">{selectedUser.firstName} {selectedUser.lastName}</h3>
+                  <div className="flex items-center space-x-3">
+                    <h3 className="text-xl font-bold text-white">{selectedUser.firstName} {selectedUser.lastName}</h3>
+                    {selectedUser.role === 'admin' && (
+                      <div className="px-3 py-1 bg-red-500/20 border border-red-500/50 rounded-full">
+                        <span className="text-red-400 text-sm font-medium">ADMIN</span>
+                      </div>
+                    )}
+                  </div>
                   <p className="text-gray-400">{selectedUser.email}</p>
                 </div>
               </div>
@@ -371,6 +515,16 @@ export const AdminPanel: React.FC = () => {
                     <div className="p-3 bg-gray-800/50 rounded-lg">
                       <div className="text-sm text-gray-400">ID utilisateur</div>
                       <div className="text-white font-mono text-sm">{selectedUser.id}</div>
+                    </div>
+                    
+                    <div className="flex items-center space-x-3 p-3 bg-gray-800/50 rounded-lg">
+                      <Shield className={`w-5 h-5 ${selectedUser.role === 'admin' ? 'text-red-400' : 'text-gray-400'}`} />
+                      <div>
+                        <div className="text-sm text-gray-400">Rôle</div>
+                        <div className={`font-medium ${selectedUser.role === 'admin' ? 'text-red-400' : 'text-white'}`}>
+                          {selectedUser.role === 'admin' ? 'Administrateur' : 'Utilisateur'}
+                        </div>
+                      </div>
                     </div>
                     
                     <div className="flex items-center space-x-3 p-3 bg-gray-800/50 rounded-lg">

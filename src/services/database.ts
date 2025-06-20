@@ -125,6 +125,17 @@ class LocalDatabase {
     return !!updatedUser;
   }
 
+  // Promouvoir un utilisateur en admin par ID (pour les admins)
+  promoteToAdminById(userId: string): boolean {
+    const users = this.getUsers();
+    const user = users.find(u => u.id === userId);
+    
+    if (!user) return false;
+    
+    const updatedUser = this.updateUser(userId, { role: 'admin' });
+    return !!updatedUser;
+  }
+
   // Rétrograder un admin en utilisateur normal
   demoteFromAdmin(userId: string): boolean {
     const updatedUser = this.updateUser(userId, { role: 'user' });
