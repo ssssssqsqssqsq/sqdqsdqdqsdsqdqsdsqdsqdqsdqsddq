@@ -12,10 +12,45 @@ import {
 } from 'lucide-react';
 
 import { useAuth } from './hooks/useAuth';
-import { AuthModal } from './components/AuthModal';
 import { UserMenu } from './components/UserMenu';
-import UserProfile from './components/UserProfile'; // import par défaut
+import UserProfile from './components/UserProfile';
 import { AdminPanel } from './components/AdminPanel';
+
+// Modal simple intégré ici pour l'exemple
+function AuthModal({ mode, onClose }: { mode: 'login' | 'register'; onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
+      <div className="bg-white text-black p-8 rounded max-w-md w-full relative">
+        <button
+          onClick={onClose}
+          className="absolute top-2 right-2 text-gray-700 font-bold text-xl"
+          aria-label="Fermer modal"
+        >
+          &times;
+        </button>
+        <h2 className="text-2xl mb-4">{mode === 'login' ? 'Connexion' : 'Inscription'}</h2>
+        <form>
+          <input
+            type="email"
+            placeholder="Email"
+            className="w-full mb-4 p-2 border border-gray-300 rounded"
+          />
+          <input
+            type="password"
+            placeholder="Mot de passe"
+            className="w-full mb-4 p-2 border border-gray-300 rounded"
+          />
+          <button
+            type="submit"
+            className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition-colors"
+          >
+            {mode === 'login' ? 'Se connecter' : "S'inscrire"}
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+}
 
 function App() {
   const { isAuthenticated, isAdmin, loading } = useAuth();
@@ -172,59 +207,3 @@ function App() {
                   />
                   <span className="text-white font-medium">Compatible Minecraft</span>
                 </div>
-
-                <div className="flex items-center space-x-2">
-                  <Package className="w-5 h-5 text-blue-500" />
-                  <span className="text-white font-medium">21 000+</span>
-                  <span className="text-gray-300">téléchargements</span>
-                </div>
-              </div>
-
-              <div className="flex flex-col sm:flex-row gap-4 mt-8">
-                <button className="inline-flex items-center justify-center px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-transform duration-200 transform hover:scale-105 shadow-2xl hover:shadow-blue-500/25">
-                  <Monitor className="w-5 h-5 mr-2" />
-                  Téléchargement gratuit
-                </button>
-                
-                <button className="inline-flex items-center justify-center px-6 py-3 bg-gray-900/80 hover:bg-gray-800/80 text-white font-semibold rounded-lg border border-gray-600 transition-transform duration-200 transform hover:scale-105 backdrop-blur-sm">
-                  <Play className="w-5 h-5 mr-2" />
-                  Comment ça marche
-                </button>
-              </div>
-
-              {!isAuthenticated && (
-                <div className="mt-8 p-4 bg-gray-900/60 border border-gray-700 rounded-lg backdrop-blur-sm">
-                  <p className="text-gray-300 text-sm mb-3">
-                    Créez un compte pour accéder à tous nos mods et fonctionnalités exclusives !
-                  </p>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => openAuthModal('register')}
-                      className="text-blue-400 hover:text-blue-300 text-sm font-medium transition-colors"
-                    >
-                      S'inscrire gratuitement
-                    </button>
-                    <span className="text-gray-400 text-sm">ou connectez-vous</span>
-                  </div>
-                </div>
-              )}
-            </div>
-          </main>
-        )}
-
-        {currentView === 'profile' && <UserProfile />}
-
-        {currentView === 'admin' && isAdmin && <AdminPanel />}
-
-        {isAuthModalOpen && (
-          <AuthModal 
-            mode={authModalMode} 
-            onClose={() => setIsAuthModalOpen(false)} 
-          />
-        )}
-      </div>
-    </div>
-  );
-}
-
-export default App;
