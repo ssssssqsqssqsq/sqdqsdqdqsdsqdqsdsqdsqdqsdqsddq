@@ -16,50 +16,30 @@ import {
 import { useAuth } from './hooks/useAuth';
 import { AuthModal } from './components/AuthModal';
 import { UserMenu } from './components/UserMenu';
-import { UserProfile } from './components/UserProfile';
+import UserProfile from './components/UserProfile';  // IMPORT PAR DÉFAUT (PAS avec des accolades)
 import { AdminPanel } from './components/AdminPanel';
 
 function App() {
-  // On récupère loading & isAdmin depuis ton hook (par ex. fetch user data)
-  const { isAdmin, loading } = useAuth();
-
-  // State local isAuthenticated pour gérer la connexion dans cet exemple
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-
-  // Mode et état modal Auth
+  const { isAuthenticated, isAdmin, loading } = useAuth();
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authModalMode, setAuthModalMode] = useState<'login' | 'register'>('login');
-
-  // Vue courante
   const [currentView, setCurrentView] = useState<'home' | 'profile' | 'admin'>('home');
 
-  // Ouvre la modal d'auth (login ou register)
   const openAuthModal = (mode: 'login' | 'register') => {
     setAuthModalMode(mode);
     setIsAuthModalOpen(true);
   };
 
-  // Gestion clic sur profil : affiche la vue profile
   const handleProfileClick = () => {
     setCurrentView('profile');
   };
 
-  // Gestion clic sur admin : affiche la vue admin
   const handleAdminClick = () => {
     setCurrentView('admin');
   };
 
-  // Retour à l'accueil
   const handleBackToHome = () => {
     setCurrentView('home');
-  };
-
-  // --- NOUVEAU ---  
-  // Fonction appelée quand la connexion est réussie (depuis AuthModal par ex)
-  const handleLoginSuccess = () => {
-    setIsAuthenticated(true);
-    setIsAuthModalOpen(false);
-    setCurrentView('home');  // RESTE SUR L'ACCUEIL, NE PAS BASCULER VERS PROFILE
   };
 
   if (loading) {
@@ -302,7 +282,6 @@ function App() {
         isOpen={isAuthModalOpen}
         onClose={() => setIsAuthModalOpen(false)}
         initialMode={authModalMode}
-        onLoginSuccess={handleLoginSuccess} // <-- Important, pour fermer modal + set isAuthenticated
       />
     </div>
   );
